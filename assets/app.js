@@ -327,7 +327,7 @@
   document.body.append(contactDialog);
   let contactTarget = null, contactTrigger = null, contactRequestId = null, contactPayload = null;
   function openContact(link) {
-    contactTarget = new URL(link.href); contactTrigger = link; contactRequestId = crypto.randomUUID(); contactPayload = null;
+    contactTarget = new URL(link.href); contactTrigger = link; contactRequestId = (crypto.randomUUID?.() || 'forms-disabled'); contactPayload = null;
     const email = contactTarget.protocol === 'mailto:';
     const phone = contactTarget.protocol === 'tel:';
     const subject = contactTarget.searchParams.get('subject') || (currentVenue ? 'Enquiry — '+currentVenue.name : 'Contact Gib .today');
@@ -355,7 +355,7 @@
       const kind = recipient !== data.contactEmail.toLowerCase() ? 'restaurant' : /correction/i.test(subject) ? 'correction' : /owner|listing update/i.test(subject) ? 'owner' : /suggest/i.test(subject) ? 'suggestion' : 'general';
       const payload = {name:form.elements.name.value.trim(), email:form.elements.email.value.trim(), message:form.elements.message.value.trim(), website:form.elements.website.value, kind, venueId:kind === 'restaurant' ? venue?.id : placeDialog.open ? currentVenue?.id : null};
       const serialized = JSON.stringify(payload);
-      if (contactPayload !== null && contactPayload !== serialized) contactRequestId = crypto.randomUUID();
+      if (contactPayload !== null && contactPayload !== serialized) contactRequestId = (crypto.randomUUID?.() || 'forms-disabled');
       contactPayload = serialized;
       button.disabled = true; button.textContent = 'Sending…'; status.textContent = '';
       try {
