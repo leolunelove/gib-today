@@ -22,7 +22,7 @@
   const byId = new Map(venues.map(venue => [venue.id, venue]));
   let savedIds;
   try { const parsed = JSON.parse(storage.get('saved', '[]')); savedIds = Array.isArray(parsed) ? parsed.filter(id => byId.has(id)) : []; } catch { savedIds = []; }
-  const state = { view: 'explore', query: '', area: 'all', cuisine: 'all', collection: 'all', sort: 'directory', online: false, layout: storage.get('layout', 'grid') === 'list' ? 'list' : 'grid', saved: new Set(savedIds) };
+  const state = { view: 'explore', query: '', area: 'all', cuisine: 'all', collection: 'all', sort: 'directory', online: false, delivery: 'all', layout: storage.get('layout', 'grid') === 'list' ? 'list' : 'grid', saved: new Set(savedIds) };
   const grid = $('#restaurant-grid');
   const placeDialog = $('#place-dialog');
   const infoDialog = $('#info-dialog');
@@ -70,8 +70,8 @@
   function getFiltered() {
     const terms = normalise(state.query.trim()).split(/\s+/).filter(Boolean);
     const result = venues.filter(venue => {
-      const haystack = normalise([venue.name, venue.area, venue.cuisine, venue.description, ...venue.tags].join(' '));
-      return (state.view !== 'saved' || state.saved.has(venue.id)) && (state.area === 'all' || venue.area === state.area) && (state.cuisine === 'all' || venue.cuisine === state.cuisine) && (state.collection === 'all' || (venue.collections || []).includes(state.collection)) && (!state.online || Boolean(venue.reservationUrl)) && terms.every(term => haystack.includes(term));
+      const haystack = normalise([venue.name, venue.area, venue.cuisine, venue.description, ...(venue.delivery || []).map(l=>(data.deliveryProviders || []).find(p=>p.id===l.provider)?.name || l.provider), ...venue.tags].join(' '));
+      return (state.view !== 'saved' || state.saved.has(venue.id)) && (state.area === 'all' || venue.area === state.area) && (state.cuisine === 'all' || venue.cuisine === state.cuisine) && (state.collection === 'all' || (venue.collections || []).includes(state.collection)) && (!state.online || Boolean(venue.reservationUrl)) && (state.delivery === 'all' || (venue.delivery || []).some(l=>state.delivery === 'any' || l.provider === state.delivery)) && terms.every(term => haystack.includes(term));
     });
     if (state.sort === 'az') result.sort((a,b) => a.name.localeCompare(b.name, 'en'));
     if (state.sort === 'za') result.sort((a,b) => b.name.localeCompare(a.name, 'en'));
@@ -86,6 +86,8 @@
     return `<div class="editorial-cover" data-tone="${e(venue.coverTone || 'stone')}" aria-hidden="true"><span class="cover-kicker"><span>${e(venue.cuisine)}</span><span class="cover-number">Nº ${number}</span></span><span class="cover-title">${(venue.coverLines || [venue.name]).map(line=>`<span>${e(line)}</span>`).join('')}</span><svg class="cover-landscape" viewBox="0 0 400 180" fill="none"><path d="M0 145h400M0 159h400M0 173h400" stroke="currentColor"/><path d="M130 145l36-23 23-35 27-17 13-24 29-6 16 27 12 8 20 37 38 33Z" fill="currentColor"/><path d="M229 46l-13 24-27 17-23 35-36 23m128-105-8 35-21 26-6 44" stroke="var(--cover-bg)" stroke-width="2"/></svg><span class="cover-footer"><span>${e(venue.area)}</span><span>Gib .today ↗</span></span></div>`;
   }
   function contactLabel(venue) {
+    if (venue.onlineOrdering) return ['globe','Order direct'];
+    if ((venue.delivery || []).length) return ['globe','Menu & delivery'];
     if (venue.tradingStatus === 'unconfirmed') return ['message','Check trading status'];
     if (venue.reservationPolicy === 'walk-in') return ['compass','Walk in'];
     if (venue.reservationUrl) return ['globe','Official booking page'];
@@ -95,14 +97,14 @@
   }
   function card(venue, index) {
     const e = escapeHTML, saved = state.saved.has(venue.id);
-    const label = venue.bookingMethod === 'status-check' ? 'Check listing' : venue.reservationPolicy === 'walk-in' ? 'Plan your visit' : venue.bookingMethod?.includes('enquiry') ? 'Contact & visit' : 'How to reserve';
+    const label = 'View place';
     const [contactIcon, contactText] = contactLabel(venue);
     return `<article class="restaurant-card" data-venue="${e(venue.id)}" style="--i:${index}">
       <div class="card-photo-wrap"><button class="card-photo" data-action="open-place" data-id="${e(venue.id)}" aria-label="${label} at ${e(venue.name)}">${coverHTML(venue,index)}</button>
         <button class="save-button" data-action="save" data-id="${e(venue.id)}" aria-pressed="${saved}" aria-label="${saved ? 'Unsave' : 'Save'} ${e(venue.name)}" title="${saved ? 'Remove from saved places' : 'Save place'}">${icon('bookmark')}</button></div>
       <div class="card-content"><div class="card-heading"><h3 class="card-title"><button data-action="open-place" data-id="${e(venue.id)}">${e(venue.name)}</button></h3></div>
         <p class="card-subtitle"><span>${e(venue.area)}</span><span class="sep" aria-hidden="true"></span><span>${e(venue.cuisine)}</span></p>
-        <p class="card-description">${e(venue.shortDescription || venue.description)}</p>
+        <p class="card-description">${e(venue.shortDescription || venue.description)}</p>${(venue.delivery || []).length ? `<p class="card-delivery" aria-label="Delivery app listings">${venue.delivery.map(l=>`<span>${e((data.deliveryProviders || []).find(p=>p.id===l.provider)?.name || l.provider)}</span>`).join('')}</p>` : ''}
         <div class="card-bottom"><a class="review-link" href="${e(venue.tripadvisor)}" ${external} aria-label="Read reviews of ${e(venue.name)} on Tripadvisor, opens in a new tab">Tripadvisor reviews ${icon('external')}</a><span class="contact-type">${icon(contactIcon)}${contactText}</span></div>
         <button class="reserve-button" data-action="open-place" data-id="${e(venue.id)}" aria-label="${label} at ${e(venue.name)}">${label} ${icon('arrow')}</button>
       </div></article>`;
@@ -139,9 +141,10 @@
     $('#sort-select').value = state.sort;
     $('#filter-sort').value = state.sort;
     $('#online-only').checked = state.online;
+    $$('[data-action="delivery"]').forEach(button => { const active=button.dataset.delivery===state.delivery; button.setAttribute('aria-pressed',String(active)); button.classList.toggle('active',active); });
     $('#clear-search').hidden = !state.query;
     $('#search-hint').hidden = Boolean(state.query);
-    $('#filter-dot').hidden = state.area === 'all' && state.cuisine === 'all' && state.collection === 'all' && !state.online && state.sort === 'directory';
+    $('#filter-dot').hidden = state.area === 'all' && state.cuisine === 'all' && state.collection === 'all' && !state.online && state.delivery === 'all' && state.sort === 'directory';
     $('#breadcrumb-page').textContent = state.view === 'saved' ? 'Saved places' : 'Explore';
     $('#page-title').innerHTML = state.view === 'saved' ? 'Your saved places.' : 'Find somewhere<br><span class="marker-word">good.</span>';
     $('#hero-copy').textContent = state.view === 'saved' ? 'The places you want to remember, kept in this browser.' : 'Curated places to eat in Gibraltar, with the simplest way to reserve.';
@@ -152,20 +155,21 @@
     grid.classList.toggle('list-mode',state.layout === 'list');
     grid.innerHTML = matches.length ? matches.map(card).join('') : emptyState();
     $('#result-total').textContent = matches.length;
-    $('#results-heading').textContent = state.view === 'saved' ? 'Your saved places' : state.area !== 'all' ? state.area : state.collection !== 'all' ? data.collections.find(c=>c.id===state.collection)?.name || 'Your collection' : state.query || state.cuisine !== 'all' || state.online ? 'Matching places' : 'Places';
+    $('#results-heading').textContent = state.view === 'saved' ? 'Your saved places' : state.area !== 'all' ? state.area : state.collection !== 'all' ? data.collections.find(c=>c.id===state.collection)?.name || 'Your collection' : state.query || state.cuisine !== 'all' || state.online || state.delivery !== 'all' ? 'Matching places' : 'Places';
     $('#results-status').textContent = `${matches.length} restaurant${matches.length === 1 ? '' : 's'} ${state.view === 'saved' ? 'in your saved places' : 'in the directory'}${state.query ? ` matching ${state.query}` : ''}.`;
     const tokens = [];
     if (state.cuisine !== 'all') tokens.push(`<button class="active-token" data-action="clear-cuisine">${escapeHTML(state.cuisine)} ${icon('close')}</button>`);
     if (state.area !== 'all') tokens.push(`<button class="active-token" data-action="clear-area" aria-label="Remove neighbourhood filter">${escapeHTML(state.area)} ${icon('close')}</button>`);
     if (state.collection !== 'all') tokens.push(`<button class="active-token" data-action="clear-collection" aria-label="Remove collection filter">${escapeHTML(data.collections.find(c=>c.id===state.collection)?.name || 'Collection')} ${icon('close')}</button>`);
     if (state.online) tokens.push(`<button class="active-token" data-action="clear-online">Online reservation page ${icon('close')}</button>`);
+    if (state.delivery !== 'all') tokens.push(`<button class="active-token" data-action="clear-delivery">${escapeHTML(state.delivery==='any'?'Delivery apps':data.deliveryProviders.find(p=>p.id===state.delivery)?.name || 'Delivery')} ${icon('close')}</button>`);
     $('#active-filters').innerHTML = tokens.join('');
     $('#active-filters').hidden = !tokens.length;
     syncControls();
   }
   function resetFilters() {
     clearTimeout(searchTimeout);
-    state.query = ''; state.area = 'all'; state.cuisine = 'all'; state.collection = 'all'; state.online = false; state.sort = 'directory';
+    state.query = ''; state.area = 'all'; state.cuisine = 'all'; state.collection = 'all'; state.online = false; state.delivery = 'all'; state.sort = 'directory';
     $('#search-input').value = '';
     render();
   }
@@ -195,27 +199,23 @@
   }
   function sourceAnchor(url, text) { return `<a href="${escapeHTML(url)}" ${external}>${escapeHTML(text)} ${icon('external')}</a>`; }
   function venueDialogHTML(venue) {
-    const e = escapeHTML, walkIn = venue.reservationPolicy === 'walk-in', statusCheck = venue.bookingMethod === 'status-check';
-    const onlineButton = venue.reservationUrl ? `<a class="button primary" href="${e(venue.reservationUrl)}" ${external}><span class="button-left">${icon('globe')}${e(venue.bookingLabel || 'Open reservation page')}</span>${icon('external')}</a>` : '';
-    const emailButton = venue.email && !walkIn && venue.emailBookingAllowed !== false ? `<a class="button ${!venue.phone && !venue.reservationUrl ? 'primary' : 'secondary'}" data-email-link href="mailto:${e(venue.email)}?subject=${encodeURIComponent(`Table enquiry — ${venue.name}`)}"><span class="button-left">${icon('mail')}Email an enquiry</span>${icon('arrow')}</a>` : '';
-    const phoneButton = venue.phone && !walkIn ? `<div class="phone-row"><a class="button ${venue.reservationUrl ? 'secondary' : 'primary'}" href="tel:${e(venue.phoneHref)}"><span class="button-left">${icon('phone')}${venue.bookingMethod === 'call-reserve' ? 'Call to reserve' : 'Call restaurant'}</span><span class="phone-value">${e(venue.phone)}</span></a><button class="phone-copy" data-action="copy-phone" aria-label="Copy phone number ${e(venue.phone)}" title="Copy number">${icon('copy')}</button></div>` : '';
-    const walkInButtons = walkIn ? `<div class="walkin-note">${icon('compass')}Walk-ins, rather than reservations.</div><a class="button primary" href="${e(googleMapsLink(venue))}" ${external}><span class="button-left">${icon('pin')}Get directions</span>${icon('external')}</a><a class="button secondary" href="${e(venue.website)}" ${external}><span class="button-left">${icon('globe')}Check hours &amp; menu</span>${icon('external')}</a>` : '';
-    const messageHelp = walkIn || statusCheck ? '' : `<details class="message-details"><summary><span>${icon('message')}A little help asking</span>${icon('chevron')}</summary><div class="message-body"><p>Make a message to copy into your own email or chat. Nothing is sent or booked here.</p><div class="message-fields"><label>Guests<select id="message-guests">${[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>`<option value="${n}" ${n===2?'selected':''}>${n}</option>`).join('')}</select></label><label>Date<input id="message-date" type="date" value="${localDateValue()}" min="${localDateValue()}"></label><label>Time<input id="message-time" type="time" value="19:30"></label></div><label class="sr-only" for="message-preview">Reservation enquiry text</label><textarea id="message-preview" class="message-preview" readonly></textarea><button class="button secondary message-copy" data-action="copy-message">${icon('copy')}Copy enquiry</button></div></details>`;
-    const imageNote = venue.image ? `Photo sourced from ${venue.imageCredit}. ${venue.imageRightsStatus}` : 'The text-led cover is a Gib .today editorial design, not the restaurant’s logo or a venue photograph.';
+    const e = escapeHTML, walkIn = venue.reservationPolicy === 'walk-in';
+    const providers = data.deliveryProviders || [];
+    const delivery = venue.delivery || [];
+    const provider = id => providers.find(p => p.id === id) || {name:id,short:id};
+    const action = (url,title,detail,primary=false,ico='external') => `<a class="place-action ${primary?'place-action-primary':''}" href="${e(url)}" ${external}><span><strong>${e(title)}</strong>${detail?`<small>${e(detail)}</small>`:''}</span>${icon(ico)}</a>`;
+    const onlineButton = venue.reservationUrl ? action(venue.reservationUrl,venue.bookingLabel || 'Book a table','Official restaurant booking page',true,'table') : '';
+    const phoneButton = venue.phone && !walkIn ? `<a class="place-action ${!venue.reservationUrl?'place-action-primary':''}" href="tel:${e(venue.phoneHref)}"><span><strong>${venue.bookingMethod==='call-reserve'?'Call to book':'Call restaurant'}</strong><small>${e(venue.phone)}</small></span>${icon('phone')}</a>` : '';
+    const emailButton = venue.email && !walkIn && venue.emailBookingAllowed !== false ? `<a class="place-action" data-email-link href="mailto:${e(venue.email)}?subject=${encodeURIComponent('Dining enquiry — '+venue.name)}"><span><strong>Email an enquiry</strong><small>${data.contactSendingEnabled===false?'Online enquiries temporarily unavailable':'Ask the restaurant directly'}</small></span>${icon('mail')}</a>` : '';
+    const deliveryLinks = delivery.map(link => { const p=provider(link.provider); return `<a class="delivery-option" href="${e(link.url)}" ${external}><span class="provider-mark" data-provider="${e(p.id)}">${e(p.short)}</span><span><strong>${e(p.name)}</strong><small>Open menu &amp; ordering</small></span>${icon('external')}</a>`; }).join('');
+    const sources = [...(venue.verification || []),...(venue.onlineOrdering?[{source:venue.onlineOrdering.source,checkedAt:venue.onlineOrdering.checkedAt,note:'Official direct ordering link.'}]:[]),...delivery.map(l=>({source:l.source,checkedAt:l.checkedAt,note:provider(l.provider).name+' restaurant listing.'}))];
     return `<div class="dialog-scroll"><div class="dialog-photo">${coverHTML(venue,0,true)}<div class="dialog-top-actions"><button class="icon-button" data-action="share-place" aria-label="Copy link to ${e(venue.name)}" title="Copy place link">${icon('link')}</button><button class="icon-button" data-action="save" data-id="${e(venue.id)}" aria-pressed="${state.saved.has(venue.id)}" aria-label="Save ${e(venue.name)}">${icon('bookmark')}</button><button class="icon-button" data-action="close-place" aria-label="Close restaurant details" autofocus>${icon('close')}</button></div></div>
-      <div class="dialog-content">${venue.image ? `<p class="photo-credit">${sourceAnchor(venue.imageSource,venue.imageCredit)}</p>` : ''}<div class="dialog-kicker">${icon('pin')}${e(venue.area)} · ${e(venue.cuisineDetail || venue.cuisine)}</div><h2 id="place-title">${e(venue.name)}</h2><p class="dialog-description">${e(venue.description)}</p><div class="detail-tags">${venue.tags.map(tag=>`<span class="detail-tag">${e(tag)}</span>`).join('')}</div>
-        <section class="reserve-block" aria-labelledby="reserve-title"><h3 class="section-heading" id="reserve-title">${icon(walkIn?'compass':'table')}${statusCheck?'Check before visiting':walkIn?'Just drop by.':'Booking & contact'}</h3><p class="intro">${statusCheck?'Current trading status could not be confirmed.':walkIn?'The official listing says no reservations.':'Use the published options below. A request is only confirmed when the restaurant confirms it.'}</p><div class="contact-buttons">${statusCheck ? `<p class="walkin-note">${e(venue.statusNote)}</p>${venue.phone ? `<a class="button primary" href="tel:${e(venue.phoneHref)}">Call published number to check</a>` : ''}` : `${walkInButtons}${onlineButton}${phoneButton}${emailButton}${venue.whatsapp ? `<a class="button secondary" href="${e(venue.whatsapp)}" ${external}>Message on WhatsApp ${icon('external')}</a>` : ''}`}${!walkIn && !venue.phone && !venue.reservationUrl && !venue.email ? '<p>Reservation information unavailable.</p>' : ''}</div><p class="reservation-note">${e(venue.reservationNote)}</p></section>
-        ${messageHelp}
-        ${(venue.auditIssues || []).length ? `<details class="source-details"><summary>What to check before visiting</summary><ul>${venue.auditIssues.map(issue=>`<li>${e(issue)}</li>`).join('')}</ul></details>` : ''}
-        <div class="detail-facts"><span>${e(venue.priceNote)}</span><span>${venue.hours ? e(venue.hours) : 'Opening hours not verified. Please check with the venue.'}</span></div>
-        <div class="detail-links">${venue.menuUrl ? sourceAnchor(venue.menuUrl,'Menu') : ''}${venue.emailBookingAllowed === false && venue.email ? sourceAnchor('mailto:'+venue.email,'General email · not bookings') : ''}${['instagram','facebook'].filter(key=>venue[key]).map(key=>sourceAnchor(venue[key],key==='instagram'?'Instagram':'Facebook')).join('')}</div>
-        <p class="verification">Last checked ${e(venue.checkedAt || data.checkedAt)} · ${venue.rechecked ? 'Published sources checked; contact channels and availability not tested.' : 'Carried forward from the supplied directory; awaiting a fresh full check.'}</p>
-        <div class="trust-links"><a href="mailto:${e(data.contactEmail)}?subject=${encodeURIComponent('Correction: '+venue.name)}&body=${encodeURIComponent('Listing: https://gib.today/place/'+venue.id+'/\n\nWhat needs correcting?\n')}">Report incorrect information</a><a href="mailto:${e(data.contactEmail)}?subject=${encodeURIComponent('Owner update: '+venue.name)}">Restaurant owner? Update this listing</a></div>
-        <section class="detail-section"><h3>More in ${e(venue.area)}</h3>${venues.filter(other=>other.id!==venue.id && other.area===venue.area).slice(0,3).map(other=>`<button class="similar-place" data-action="open-place" data-id="${e(other.id)}"><span>${e(other.name)}<small> · ${e(other.cuisine)}</small></span>${icon('arrow')}</button>`).join('') || '<p>More nearby places are being researched.</p>'}</section>
-        <section class="detail-section"><h3>${icon('pin')}Find your way there</h3><div class="address-card"><address>${e(venue.address)}</address><a href="${e(googleMapsLink(venue))}" ${external}>Directions ${icon('external')}</a></div></section>
-        <section class="detail-section"><h3>Before you go</h3><div class="detail-links"><a class="detail-link" href="${e(venue.tripadvisor)}" ${external}><span>Read reviews on Tripadvisor<small>Recent feedback, photos and listing details</small></span>${icon('external')}</a>${venue.website ? `<a class="detail-link" href="${e(venue.website)}" ${external}><span>Restaurant website<small>Check current information with the restaurant</small></span>${icon('external')}</a>` : `<a class="detail-link" href="${e(venue.contactSource)}" ${external}><span>Published contact details<small>${e(venue.contactSourceName)}</small></span>${icon('external')}</a>`}</div></section>
-        <details class="source-details"><summary>Sources &amp; a few useful details</summary><p>Source check: ${e(venue.checkedAt || data.checkedAt)}. ${e(venue.contactProvenance)} Opening hours, menus and availability may change; confirm them directly. This is not a live data feed.</p>${(venue.verification || []).map(check=>`<p>${check.linkStatus === 'unrelated-redirect' ? e('Former website withheld: '+check.source) : sourceAnchor(check.source,'Source · '+check.checkedAt)}${check.note ? `<br>${e(check.note)}` : ''}</p>`).join('')}${sourceAnchor(venue.contactSource,venue.contactSourceName)}${venue.contactSource !== venue.tripadvisor ? sourceAnchor(venue.tripadvisor,'Tripadvisor review listing') : ''}${venue.additionalSource ? sourceAnchor(venue.additionalSource,venue.additionalSourceName) : ''}<p class="source-footnote">This place had Tripadvisor reviews when checked. Ratings and counts are deliberately not reproduced. This is an independent directory, not an affiliation or booking partnership. ${imageNote}</p></details>
-      </div></div><div class="dialog-toast" role="status" aria-live="polite">${icon('check')}<span class="dialog-toast-message"></span></div>`;
+      <div class="dialog-content"><header class="place-heading"><div class="dialog-kicker">${e(venue.area)} · ${e(venue.cuisineDetail || venue.cuisine)}</div><h2 id="place-title">${e(venue.name)}</h2><p class="dialog-description">${e(venue.description)}</p><div class="detail-tags">${venue.tags.slice(0,4).map(tag=>`<span class="detail-tag">${e(tag)}</span>`).join('')}</div><nav class="place-quick-links" aria-label="Restaurant links">${venue.menuUrl?sourceAnchor(venue.menuUrl,'Menu'):''}${venue.website?sourceAnchor(venue.website,'Website'):''}${sourceAnchor(googleMapsLink(venue),'Directions')}${['instagram','facebook'].filter(k=>venue[k]).map(k=>sourceAnchor(venue[k],k==='instagram'?'Instagram':'Facebook')).join('')}</nav></header>
+      <div class="place-layout"><div class="place-main"><section class="place-section order-section" aria-labelledby="order-title"><h3 id="order-title">Order &amp; delivery</h3>${venue.onlineOrdering?`<div class="direct-order">${action(venue.onlineOrdering.url,venue.onlineOrdering.label,'Official online ordering · '+venue.onlineOrdering.provider,true,'arrow')}</div>`:''}${delivery.length?`<p class="place-eyebrow">Listed on ${delivery.length===1?'this delivery app':'these delivery apps'}</p><div class="delivery-options">${deliveryLinks}</div><p class="place-fineprint">Check the app for current availability, delivery area, fees and collection options.</p>`:`<p class="place-empty">No delivery-app listing verified yet.</p>`}</section>
+      <section class="place-section reserve-block" aria-labelledby="reserve-title"><h3 id="reserve-title">${walkIn?'Walk in':'Eat here'}</h3>${walkIn?'<p class="walkin-note">Walk-ins only, according to the official restaurant listing.</p>':`<div class="contact-buttons">${onlineButton}${phoneButton}${venue.whatsapp?action(venue.whatsapp,'Message on WhatsApp','Contact the restaurant'):''}${emailButton}</div>`}<p class="reservation-note">${e(venue.reservationNote)}</p>${!walkIn && venue.emailBookingAllowed===false && venue.email?`<div class="detail-links">${sourceAnchor('mailto:'+venue.email,'General email · not bookings')}</div>`:''}</section></div>
+      <aside class="place-rail" aria-label="Plan your visit"><section class="visit-panel"><h3>Plan your visit</h3><div class="visit-fact"><span class="place-eyebrow">Find it</span><address>${e(venue.address)}</address><a href="${e(googleMapsLink(venue))}" ${external}>Get directions ${icon('arrow')}</a></div><div class="visit-fact"><span class="place-eyebrow">Opening hours</span><p>${e(venue.hours || 'Hours not verified. Check with the restaurant before visiting.')}</p></div><details class="price-detail"><summary>Menu &amp; price notes</summary><p>${e(venue.priceNote || 'See the current menu for prices.')}</p></details></section></aside></div>
+      <footer class="place-footer"><details class="source-details"><summary>Sources &amp; things to know</summary><p>Restaurant details checked ${e(venue.checkedAt || data.checkedAt)}. Delivery listings checked ${e(venue.deliveryCheckedAt || data.deliveryCheckedAt)}. Listings do not mean a restaurant is accepting orders right now.</p>${(venue.auditIssues || []).length?`<ul>${venue.auditIssues.map(issue=>`<li>${e(issue)}</li>`).join('')}</ul>`:''}${sources.map(check=>`<p>${check.linkStatus==='unrelated-redirect'?e('Former website withheld: '+check.source):sourceAnchor(check.source,'Source · '+check.checkedAt)}${check.note?`<small>${e(check.note)}</small>`:''}</p>`).join('')}${venue.image?`<p>${sourceAnchor(venue.imageSource,venue.imageCredit)}<small>${e(venue.imageRightsStatus || '')}</small></p>`:''}<p class="source-footnote">Independent directory. Orders and table bookings are handled by the restaurant or delivery provider.</p></details><div class="trust-links"><a href="mailto:${e(data.contactEmail)}?subject=${encodeURIComponent('Correction: '+venue.name)}">Report incorrect information</a><a href="mailto:${e(data.contactEmail)}?subject=${encodeURIComponent('Owner update: '+venue.name)}">Restaurant owner? Update this listing</a></div></footer>
+      <section class="detail-section nearby-section"><h3>More in ${e(venue.area)}</h3>${venues.filter(other=>other.id!==venue.id && other.area===venue.area).slice(0,2).map(other=>`<button class="similar-place" data-action="open-place" data-id="${e(other.id)}"><span>${e(other.name)}<small> · ${e(other.cuisine)}</small></span>${icon('arrow')}</button>`).join('') || '<p>More nearby places are being researched.</p>'}</section></div></div><div class="dialog-toast" role="status" aria-live="polite">${icon('check')}<span class="dialog-toast-message"></span></div>`;
   }
   function showPlace(id, changeHash = true) {
     const venue = byId.get(id); if (!venue || closing) return;
@@ -406,6 +406,8 @@
       case 'reset-filters': animateUpdate(resetFilters); break;
       case 'clear-cuisine': state.cuisine='all'; render(); break;
       case 'clear-area': state.area='all'; render(); break;
+      case 'delivery': state.delivery=button.dataset.delivery; animateUpdate(render); break;
+      case 'clear-delivery': state.delivery='all'; animateUpdate(render); break;
       case 'clear-online': state.online=false; render(); break;
       case 'toggle-filters': { const open = $('#filter-panel').hidden; $('#filter-panel').hidden = !open; button.setAttribute('aria-expanded',String(open)); break; }
       case 'copy-phone': if (currentVenue) copyText(currentVenue.phone,'Phone number copied'); break;
