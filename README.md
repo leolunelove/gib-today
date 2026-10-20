@@ -1,6 +1,6 @@
 # Gib .today
 
-A curated guide to 21 restaurants in Gibraltar.
+A curated guide to 42 restaurants in Gibraltar.
 
 Published with GitHub Pages at https://gib.today/. Email forms are intentionally disabled pending a hosted sending backend; phone, WhatsApp and official booking links remain available.
 

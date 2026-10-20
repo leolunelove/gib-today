@@ -711,3 +711,5 @@ body{font-size:1rem}
 @media(prefers-reduced-motion:reduce){.place-dialog[open]{animation:none}.delivery-option,.place-action{transition:none}}
 
 @media(min-width:701px){.place-dialog .dialog-photo{height:150px}.delivery-options{grid-template-columns:repeat(2,minmax(0,1fr))}.delivery-option{padding:10px;gap:8px}.provider-mark{width:28px;height:28px;font-size:.6rem}.delivery-option strong{font-size:.75rem}.delivery-option small{font-size:.6rem}.place-heading{margin-bottom:22px}.place-heading .dialog-description{margin-bottom:9px}}
+
+.image-notice{position:absolute;left:12px;bottom:12px;padding:5px 9px;border-radius:5px;background:var(--yellow,#f8d964);color:#222;font:600 11px/1.3 sans-serif;pointer-events:none}
