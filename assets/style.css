@@ -882,3 +882,10 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:2px; 
   .mobile-nav { padding:4px; bottom:6px; }
   .mobile-nav button { min-height:40px; padding:.4rem .5rem; }
 }
+
+/* Direct-send feedback stays inside the contact popup. */
+.contact-status:not(:empty){padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--soft);font-size:.82rem;line-height:1.6;overflow-wrap:anywhere}
+.contact-status.contact-sent{display:flex;align-items:flex-start;gap:10px;border-left:4px solid var(--brand)}
+.contact-status.contact-sent>.icon{margin-top:3px}
+.contact-status.contact-error{border-left:4px solid #a23f2a}
+.contact-form :is(input,textarea):disabled{opacity:.7}
