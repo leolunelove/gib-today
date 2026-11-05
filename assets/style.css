@@ -885,7 +885,20 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:2px; 
 
 /* Direct-send feedback stays inside the contact popup. */
 .contact-status:not(:empty){padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--soft);font-size:.82rem;line-height:1.6;overflow-wrap:anywhere}
-.contact-status.contact-sent{display:flex;align-items:flex-start;gap:10px;border-left:4px solid var(--brand)}
-.contact-status.contact-sent>.icon{margin-top:3px}
 .contact-status.contact-error{border-left:4px solid #a23f2a}
 .contact-form :is(input,textarea):disabled{opacity:.7}
+.contact-success{display:grid;justify-items:center;gap:16px;padding:56px 30px 30px;text-align:center}
+.contact-success p{margin:0}
+.contact-success-stamp{display:grid;place-items:center;width:3.6rem;height:3.6rem;margin-bottom:.4rem;background:var(--brand);color:var(--yellow-ink);border:1px solid #25282024;border-radius:.4rem;box-shadow:3px 4px 0 #202d2717;transform:rotate(-5deg)}
+.contact-success-stamp .icon{width:1.8rem;height:1.8rem;stroke-width:2.5}
+.contact-success .dialog-kicker{color:var(--muted)}
+.contact-success h2{font-size:2rem;line-height:1.25;letter-spacing:-.045em;font-weight:750;margin:0}
+.contact-success h2:focus{outline:none}
+.contact-success-copy{max-width:26ch;color:var(--muted);line-height:1.65}
+.contact-reply-note{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border:1px solid var(--line);border-radius:8px;background:var(--soft);text-align:left;font-size:.8rem;color:var(--muted)}
+.contact-reply-note>.icon{flex:none;color:var(--ink)}
+.contact-reply-note p{min-width:0}
+.contact-reply-note strong{display:block;color:var(--ink);font-weight:650;overflow-wrap:anywhere}
+.contact-success-note{color:var(--muted);font-size:.8rem;line-height:1.6;max-width:32ch}
+.contact-success .primary{width:100%;min-height:48px;margin-top:6px;background:var(--brand);color:var(--yellow-ink)}
+@media(max-width:700px){.contact-success{padding:56px 20px 24px;gap:14px}.contact-success h2{font-size:1.8rem}}

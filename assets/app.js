@@ -538,6 +538,25 @@
     contactDialog.querySelector('textarea').value = contactTarget.searchParams.get('body') || '';
     showContact(link);
   }
+  function showContactSuccess(form, payload, kind, venue) {
+    const previousHeight = contactDialog.getBoundingClientRect().height;
+    const screen = document.createElement('section');
+    screen.className = 'contact-success';
+    const thanks = {suggestion:'Thanks for sharing a place worth knowing.', correction:'Thanks for helping keep the details right.', owner:'Thanks for sending your listing update.', general:'Thanks for getting in touch.'};
+    screen.innerHTML = `<div class="contact-success-stamp" aria-hidden="true">${icon('check')}</div><p class="dialog-kicker">All done</p><h2 id="contact-title" tabindex="-1"><span class="marker-word">Message sent.</span></h2><p class="contact-success-copy">${kind === 'restaurant' ? `Your enquiry is on its way to ${escapeHTML(venue.name)}${/[.!?]$/.test(venue.name) ? '' : '.'}` : thanks[kind]}</p><div class="contact-reply-note">${icon('mail')}<p>Replies go to<strong>${escapeHTML(payload.email)}</strong></p></div>${kind === 'restaurant' ? '<p class="contact-success-note">The restaurant will need to reply to confirm any booking.</p>' : ''}<button type="button" class="button primary contact-done">${placeDialog.open ? 'Back to the restaurant' : 'Back to exploring'} ${icon('arrow')}</button>`;
+    form.replaceWith(screen);
+    $('.popup-current-name',contactDialog).textContent = 'Message sent.';
+    contactDialog.scrollTop = 0;
+    contactDialog.classList.remove('is-scrolled');
+    $('.contact-done',screen).onclick = () => closeDialog(contactDialog);
+    if (contactDialog.open && !contactDialog.classList.contains('closing')) {
+      const nextHeight = contactDialog.getBoundingClientRect().height;
+      playMotion(contactDialog,[{height:`${previousHeight}px`,overflow:'hidden'},{height:`${nextHeight}px`,overflow:'hidden'}]);
+      playMotion(screen,[{opacity:0,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:motion.enter});
+      playMotion($('.contact-success-stamp',screen),[{transform:'rotate(-12deg) scale(.8)'},{transform:'rotate(-5deg) scale(1)'}],{duration:motion.enter});
+      $('#contact-title',screen).focus({preventScroll:true});
+    }
+  }
   document.addEventListener('click', event => {
     const link = event.target.closest('a[href]');
     if (!link || contactDialog.contains(link)) return;
@@ -572,9 +591,7 @@
         const response = await fetch(data.contactEndpoint || '/api/contact', {method:'POST',credentials:'omit',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,requestId}),signal:controller.signal});
         const result = await response.json();
         if (!response.ok || !result.accepted) throw new Error(result.error || 'Your message could not be sent. Please retry.');
-        status.classList.add('contact-sent');
-        status.innerHTML = `${icon('check')}<span><strong>Message sent.</strong><br>Replies will go to the email address you provided.${kind === 'restaurant' ? ' A booking needs a reply from the restaurant.' : ''}</span>`;
-        button.innerHTML = `Sent ${icon('check')}`;
+        if (contactRequestId === requestId && contactDialog.contains(form)) showContactSuccess(form, payload, kind, venue);
       } catch (error) {
         fields.forEach(field => { field.disabled=false; });
         status.textContent = error.name === 'AbortError' ? 'The connection timed out. Your message is kept here; retrying will not send a duplicate.' : error instanceof SyntaxError || error instanceof TypeError ? 'Could not connect. Your message is kept here; please retry.' : error.message;
