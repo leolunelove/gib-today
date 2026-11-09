@@ -27,10 +27,15 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #171b17; --surface: #21261f; --sidebar: #1c211b;
-  --ink: #eef0e7; --muted: #a5ad9d; --faint: #87917f;
-  --line: #343c2f; --soft: #2b3227; --focus: var(--brand);
-  --shadow: 0 .4rem 1.6rem -.8rem #0004;
+  --bg: #1e1d1b;
+  --surface: #292725;
+  --sidebar: #171614;
+  --ink: #f3eee5;
+  --muted: #c7beb1;
+  --faint: #aba195;
+  --line: #514b44;
+  --soft: #34312e;
+  --shadow: 0 .18rem 0 #0003;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { font-size: clamp(.9375rem, 1.111111vw, 3rem); scroll-behavior: smooth; scrollbar-gutter: stable; }
@@ -510,7 +515,6 @@ html {font-size:clamp(1rem,.95rem + .15vw,1.125rem)}
 
 /* Gib .today — a solid, editorial local guide. */
 :root{--bg:#f3f0e8;--surface:#fffdf7;--sidebar:#202e28;--ink:#202d27;--muted:#596057;--faint:#62675d;--line:#d1cfc2;--soft:#e9e6db;--shadow:0 .18rem 0 #202d2712;--radius:.7rem;--grid-gap:clamp(1rem,1.6vw,1.75rem);--page-gutter:clamp(1.15rem,3vw,4rem)}
-:root[data-theme="dark"]{--bg:#17221d;--surface:#24322a;--sidebar:#101b15;--ink:#f3f0e5;--muted:#c0c7b9;--faint:#a7b3a0;--line:#4c594b;--soft:#304034;--shadow:0 .18rem 0 #0003}
 body{font-size:1rem}
 .sidebar{color:#f5f0df;border-right:0;padding-top:2rem;--muted:#c7cec2;--faint:#adb8a8;--line:#465448;--soft:#34463a;--surface:#293b2f}
 .brand{padding:0 .6rem;gap:0}
@@ -949,7 +953,27 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:2px; 
 :root[data-theme="dark"] .sidebar .sidebar-bottom > span { color: var(--muted); }
 :root[data-theme="dark"] .sidebar .icon-button:not(:hover) { color: var(--ink); }
 .mobile-theme { margin-inline-start: auto; min-width: 44px; min-height: 44px; color: var(--ink); }
+@property --theme-wave-radius {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes theme-wave-reveal {
+  from { --theme-wave-radius: 0px; }
+  to { --theme-wave-radius: var(--theme-wave-reach); }
+}
 @media (prefers-reduced-motion: no-preference) {
+  :root.theme-wave::view-transition { pointer-events: none; }
+  :root.theme-wave::view-transition-group(root),
+  :root.theme-wave::view-transition-old(root) { animation: none; }
+  :root.theme-wave::view-transition-old(root),
+  :root.theme-wave::view-transition-new(root) { mix-blend-mode: normal; }
+  :root.theme-wave::view-transition-new(root) {
+    animation: theme-wave-reveal 640ms cubic-bezier(.25,.12,.28,1) both;
+    mask-image: radial-gradient(circle at var(--theme-wave-origin),
+      black calc(var(--theme-wave-radius) - var(--theme-wave-feather)),
+      transparent var(--theme-wave-radius));
+  }
   :root.theme-switching :where(
     body, .sidebar, .brand-byline, .sidebar-bottom > span, .topbar, .mobile-nav,
     .nav-item, .area-item, .icon-button, .directory-label, .search-field,
@@ -1046,7 +1070,13 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:2px; 
 .availability-note { margin: -.25rem 0 .85rem; font-size: .75rem; color: var(--muted); }
 .card-hours { display: inline-flex; align-items: center; gap: .35rem; font-size: .69rem; font-weight: 650; color: var(--muted); white-space: nowrap; }
 .card-hours[data-status="open"] { color: #34623e; }
-:root[data-theme="dark"] .card-hours[data-status="open"] { color: #a9d7a6; }
+:root[data-theme="dark"] .card-hours[data-status="open"] { color: #e5ce88; }
+:root[data-theme="dark"] .save-button[aria-pressed="false"] {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] dialog::backdrop { background-color: #100f0eb0; }
 @media (hover: hover) {
   .availability-toggle[aria-pressed="false"]:hover { border-color: var(--muted); background: var(--surface); }
 }

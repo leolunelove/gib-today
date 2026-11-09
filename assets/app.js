@@ -583,23 +583,58 @@
     if (!copied && $('#message-preview') && text === $('#message-preview').value) { $('#message-preview').focus(); $('#message-preview').select(); }
   }
   let themeTimer;
-  function applyTheme(theme) {
+  let themeWave;
+  let themeRevision = 0;
+  let requestedTheme = document.documentElement.dataset.theme || 'light';
+  function applyTheme(theme, button) {
+    if (theme === requestedTheme) return;
+    requestedTheme = theme;
+    const revision = ++themeRevision;
     const root = document.documentElement;
+    themeWave?.skipTransition();
     if ((root.dataset.theme || 'light') === theme) return;
     clearTimeout(themeTimer);
+    const update = () => {
+      if (revision !== themeRevision) return;
+      root.dataset.theme = theme;
+      syncTheme();
+    };
+    if (button && !reducedMotion.matches && !document.hidden && document.startViewTransition &&
+        typeof CSS.registerProperty === 'function' && CSS.supports('mask-image', 'radial-gradient(black, transparent)')) {
+      const bounds = button.getBoundingClientRect();
+      const x = bounds.left + bounds.width / 2;
+      const y = bounds.top + bounds.height / 2;
+      const distance = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+      const feather = Math.min(170, Math.max(76, distance * .15));
+      root.style.setProperty('--theme-wave-origin', `${x}px ${y}px`);
+      root.style.setProperty('--theme-wave-feather', `${feather}px`);
+      root.style.setProperty('--theme-wave-reach', `${distance + feather}px`);
+      root.classList.remove('theme-switching');
+      root.classList.add('theme-wave');
+      const wave = document.startViewTransition(update);
+      themeWave = wave;
+      wave.ready.catch(() => {}); // A newer switch or hidden tab may skip the animation.
+      const cleanup = () => {
+        if (themeWave !== wave) return;
+        themeWave = null;
+        root.classList.remove('theme-wave');
+        root.style.removeProperty('--theme-wave-origin');
+        root.style.removeProperty('--theme-wave-feather');
+        root.style.removeProperty('--theme-wave-reach');
+      };
+      wave.finished.then(cleanup, cleanup);
+      return;
+    }
     if (!reducedMotion.matches) {
       root.classList.add('theme-switching');
       themeTimer = setTimeout(() => root.classList.remove('theme-switching'), 300);
     }
-    root.dataset.theme = theme;
-    syncTheme();
+    update();
   }
   function setTheme(button) {
-    const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    applyTheme(theme);
+    const theme = requestedTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(theme,button);
     storage.set('theme',theme);
-    const glyph = $('.icon',button);
-    if (glyph) playMotion(glyph,[{opacity:.45,transform:'rotate(-18deg) scale(.85)'},{opacity:1,transform:'none'}]);
   }
   function syncTheme() {
     const dark = document.documentElement.dataset.theme === 'dark';
