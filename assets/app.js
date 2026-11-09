@@ -535,7 +535,7 @@
   function infoHTML(page) {
     const sources = page === 'sources';
     const sourceEntries = (sources ? venues : []).map(venue => `<details><summary>${escapeHTML(venue.name)}</summary>${sourceAnchor(venue.contactSource,venue.contactSourceName)}${venue.tripadvisor?sourceAnchor(venue.tripadvisor,'Tripadvisor review listing'):''}<small>${escapeHTML(venue.contactProvenance)}</small></details>`).join('');
-    return `<div class="info-toolbar"><span class="popup-current-name" aria-hidden="true">${sources ? 'About & sources' : 'A little guidance'}</span><button class="icon-button close-info" data-action="close-info" aria-label="Close guide" autofocus>${icon('close')}</button></div><div class="info-content"><div class="info-mark">${icon('table')}</div><h2 id="info-title">${sources ? 'About the <span class="marker-word">directory</span>' : 'Find a <span class="marker-word">place to eat</span>'}</h2>${sources ? `<p class="info-intro">An independent starting point for eating out in Gibraltar. ${venues.length} selected places across ${data.areas.length} neighbourhoods. Not a complete list, and not a paid ranking.</p><h3>What makes it into the directory?</h3><p>A Gibraltar location and current restaurant or delivery-menu evidence, with a published way to contact, order from or visit the business. The selection covers a spread of cuisines, neighbourhoods and meal types. Inclusion is not a quality rating, first-hand review or partnership.</p><h3>Published details, not live availability.</h3><p>Original package check: ${checkedDate}. Individual listings show their latest check date. Some entries still await a fresh full check. Opening hours and availability are not inferred. Tripadvisor scores and review counts stay on Tripadvisor, where you can read the current listing.</p><div class="source-list">${sourceEntries}</div><h3>A note on the photography</h3><p>The directory uses venue images from business websites, delivery menus, official tourism pages and credited venue galleries. Promotional artwork is labelled. Sources are linked on each listing. Some source images are promotional graphics or archival photographs. They do not establish current trading status. Image sources are credited; original photographer and reuse permissions have not been independently confirmed. Editorial covers remain as a fallback if an image cannot load. No generated images are presented as restaurant photographs.</p><h3>Your browser. Your saved places.</h3><p>Saved places, layout and appearance are stored only in this browser. There are no accounts, tracking scripts, booking records or advertising cookies. Clearing browser data removes your saved places. Contact messages are delivered through an email service to the recipient shown. Limited delivery and abuse-prevention records are kept; message bodies are not stored by this directory. External websites have their own privacy practices.</p><button class="button secondary" data-action="theme">${icon('moon')}Change appearance</button>` : `<p class="info-intro">Search by restaurant, neighbourhood or cuisine.</p><div class="steps"><div class="step"><span class="step-number">01</span><div><h3>Browse and save</h3><p>A coffee around the corner. Dinner by the water. Explore by neighbourhood or cuisine, and bookmark the ones that catch your eye.</p></div></div><div class="step"><span class="step-number">02</span><div><h3>See what’s available</h3><p>Open a restaurant for its menu, visit details, direct ordering and verified delivery-app listings. Booking links and walk-in guidance live there too.</p></div></div><div class="step"><span class="step-number">03</span><div><h3>Contact or order</h3><p>Call the restaurant, follow its booking link or open your delivery app. Check today’s hours before heading over. The restaurant or provider confirms your booking or order.</p></div></div></div><div class="info-callout">A little local guide, with no account or booking fee. Restaurants and delivery apps handle availability, orders and reservations directly.</div><button class="text-button" data-action="info" data-page="sources">Read about the directory and its sources</button>`}</div>`;
+    return `<div class="info-toolbar"><span class="popup-current-name" aria-hidden="true">${sources ? 'About & sources' : 'A little guidance'}</span><button class="icon-button close-info" data-action="close-info" aria-label="Close guide" autofocus>${icon('close')}</button></div><div class="info-content"><div class="info-mark">${icon('table')}</div><h2 id="info-title">${sources ? 'About the <span class="marker-word">directory</span>' : 'Find a <span class="marker-word">place to eat</span>'}</h2>${sources ? `<p class="info-intro">An independent starting point for eating out in Gibraltar. ${venues.length} selected places across ${data.areas.length} neighbourhoods. Not a complete list, and not a paid ranking.</p><h3>What makes it into the directory?</h3><p>A Gibraltar location and current restaurant or delivery-menu evidence, with a published way to contact, order from or visit the business. The selection covers a spread of cuisines, neighbourhoods and meal types. Inclusion is not a quality rating, first-hand review or partnership.</p><h3>Published details, not live availability.</h3><p>Original package check: ${checkedDate}. Individual listings show their latest check date. Some entries still await a fresh full check. Opening hours and availability are not inferred. Tripadvisor scores and review counts stay on Tripadvisor, where you can read the current listing.</p><div class="source-list">${sourceEntries}</div><h3>A note on the photography</h3><p>The directory uses venue images from business websites, delivery menus, official tourism pages and credited venue galleries. Promotional artwork is labelled. Sources are linked on each listing. Some source images are promotional graphics or archival photographs. They do not establish current trading status. Image sources are credited; original photographer and reuse permissions have not been independently confirmed. Editorial covers remain as a fallback if an image cannot load. No generated images are presented as restaurant photographs.</p><h3>Your browser. Your saved places.</h3><p>Saved places, layout and appearance are stored only in this browser. There are no accounts, tracking scripts, booking records or advertising cookies. Clearing browser data removes your saved places. Contact messages are delivered through an email service to the recipient shown. Limited delivery and abuse-prevention records are kept; message bodies are not stored by this directory. External websites have their own privacy practices.</p><button class="button secondary" data-action="theme">${icon('moon')}<span data-theme-label>Switch to dark appearance</span></button>` : `<p class="info-intro">Search by restaurant, neighbourhood or cuisine.</p><div class="steps"><div class="step"><span class="step-number">01</span><div><h3>Browse and save</h3><p>A coffee around the corner. Dinner by the water. Explore by neighbourhood or cuisine, and bookmark the ones that catch your eye.</p></div></div><div class="step"><span class="step-number">02</span><div><h3>See what’s available</h3><p>Open a restaurant for its menu, visit details, direct ordering and verified delivery-app listings. Booking links and walk-in guidance live there too.</p></div></div><div class="step"><span class="step-number">03</span><div><h3>Contact or order</h3><p>Call the restaurant, follow its booking link or open your delivery app. Check today’s hours before heading over. The restaurant or provider confirms your booking or order.</p></div></div></div><div class="info-callout">A little local guide, with no account or booking fee. Restaurants and delivery apps handle availability, orders and reservations directly.</div><button class="text-button" data-action="info" data-page="sources">Read about the directory and its sources</button>`}</div>`;
   }
   function showInfo(page) {
     cancelDialogClose(infoDialog);
@@ -543,6 +543,7 @@
     const replacing = infoDialog.open;
     if (!infoDialog.open) dialogFocus.set(infoDialog,document.activeElement);
     infoDialog.innerHTML = infoHTML(page);
+    syncTheme();
     prepareDisclosures(infoDialog);
     if (!infoDialog.open) infoDialog.showModal();
     infoDialog.scrollTop = 0;
@@ -581,17 +582,36 @@
     notify(copied ? successMessage : 'Copy unavailable. Select and copy the visible text.');
     if (!copied && $('#message-preview') && text === $('#message-preview').value) { $('#message-preview').focus(); $('#message-preview').select(); }
   }
-  function setTheme() {
-    const dark = document.documentElement.dataset.theme !== 'dark';
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    storage.set('theme',dark ? 'dark' : 'light');
-    $('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  let themeTimer;
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    if ((root.dataset.theme || 'light') === theme) return;
+    clearTimeout(themeTimer);
+    if (!reducedMotion.matches) {
+      root.classList.add('theme-switching');
+      themeTimer = setTimeout(() => root.classList.remove('theme-switching'), 300);
+    }
+    root.dataset.theme = theme;
     syncTheme();
+  }
+  function setTheme(button) {
+    const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(theme);
+    storage.set('theme',theme);
+    const glyph = $('.icon',button);
+    if (glyph) playMotion(glyph,[{opacity:.45,transform:'rotate(-18deg) scale(.85)'},{opacity:1,transform:'none'}]);
   }
   function syncTheme() {
     const dark = document.documentElement.dataset.theme === 'dark';
     $('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-    $$('.sidebar [data-action="theme"]').forEach(button => { button.innerHTML = icon(dark ? 'sun' : 'moon'); button.setAttribute('aria-label',`Switch to ${dark ? 'light' : 'dark'} appearance`); });
+    const label = `Switch to ${dark ? 'light' : 'dark'} appearance`;
+    $$('[data-action="theme"]').forEach(button => {
+      $('use',button)?.setAttribute('href',dark ? '#i-sun' : '#i-moon');
+      const visibleLabel = $('[data-theme-label]',button);
+      if (visibleLabel) visibleLabel.textContent = label;
+      button.setAttribute('aria-label',label);
+      button.title = label;
+    });
   }
   let routeClosing = false;
   function updateMetadata(venue) {
@@ -759,7 +779,7 @@
       case 'close-place': closeDialog(placeDialog); break;
       case 'close-info': closeDialog(infoDialog); break;
       case 'info': showInfo(button.dataset.page); break;
-      case 'theme': setTheme(); break;
+      case 'theme': setTheme(button); break;
       case 'focus-search': $('#search-input').focus(); break;
       case 'clear-search': clearTimeout(searchTimeout); state.query = ''; $('#search-input').value=''; animateUpdate(render); $('#search-input').focus(); break;
       case 'reset-filters': animateUpdate(resetFilters); break;
@@ -804,6 +824,7 @@
   });
   // Keep saved bookmarks consistent across open tabs, without a server or login.
   window.addEventListener('storage',event => {
+    if (event.key === 'table.v1.theme') applyTheme(event.newValue === 'dark' ? 'dark' : 'light');
     if (event.key!=='table.v1.saved') return;
     try { const parsed=JSON.parse(event.newValue||'[]'); state.saved=new Set(Array.isArray(parsed)?parsed.filter(id=>byId.has(id)):[]); state.view==='saved'?render():syncSaved(); } catch { /* Ignore malformed external state. */ }
   });

@@ -933,6 +933,36 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:2px; 
 .sidebar .area-item > .icon { display: none; }
 .sidebar .area-item .count { background: transparent; font-variant-numeric: tabular-nums; }
 .sidebar .sidebar-bottom { padding-inline: .55rem; }
+:root[data-theme="dark"] .sidebar {
+  color-scheme: dark;
+  background: var(--sidebar);
+  color: var(--ink);
+  border-color: var(--line);
+  --muted: inherit;
+  --faint: inherit;
+  --line: inherit;
+  --soft: inherit;
+  --surface: inherit;
+  --focus: inherit;
+}
+:root[data-theme="dark"] .sidebar .brand-byline,
+:root[data-theme="dark"] .sidebar .sidebar-bottom > span { color: var(--muted); }
+:root[data-theme="dark"] .sidebar .icon-button:not(:hover) { color: var(--ink); }
+.mobile-theme { margin-inline-start: auto; min-width: 44px; min-height: 44px; color: var(--ink); }
+@media (prefers-reduced-motion: no-preference) {
+  :root.theme-switching :where(
+    body, .sidebar, .brand-byline, .sidebar-bottom > span, .topbar, .mobile-nav,
+    .nav-item, .area-item, .icon-button, .directory-label, .search-field,
+    input, select, textarea, .filters-toggle, .filter-panel, .delivery-toolbar,
+    .delivery-chip, .availability-toggle, .view-toggle, .view-toggle button,
+    .restaurant-card, .card-title a, .card-subtitle, .card-description, .card-hours,
+    .card-bottom, .card-delivery, .contact-type, .availability-note, .directory-note,
+    dialog, .dialog-top-actions, .info-toolbar, .contact-toolbar, .visit-panel,
+    .visit-fact, .place-section h3, .place-action, .delivery-option, .detail-tag
+  ) {
+    transition: color 230ms ease, background-color 230ms ease, border-color 230ms ease, box-shadow 230ms ease;
+  }
+}
 
 .search-row { margin-bottom: .5rem; }
 .search-field, .filters-toggle { border-radius: .25rem; box-shadow: none; }
