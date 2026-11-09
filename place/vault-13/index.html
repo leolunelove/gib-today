@@ -16,7 +16,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Vault 13 · Gib .today</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/style.css?v=20261109-venue-audit">
+  <link rel="stylesheet" href="/assets/style.css?v=20261109-open-now">
   <script>try{if(localStorage.getItem('table.v1.theme')==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 <link rel="manifest" href="/site.webmanifest"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"><meta property="og:image" content="https://gib.today/assets/share.png"><meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Restaurant", "name": "Vault 13", "url": "https://gib.today/place/vault-13/", "description": "Mediterranean and Asian dishes on Chatham Counterguard. A central option for lunch or dinner.", "address": {"@type": "PostalAddress", "streetAddress": "13 Chatham Counterguard, Gibraltar", "addressCountry": "GI"}, "servesCuisine": "Asian fusion", "sameAs": ["https://www.tripadvisor.co.uk/Restaurant_Review-g14006565-d23461953-Reviews-Vault_13-Gibraltar_Town.html", "https://www.facebook.com/Vault13Gib/"], "telephone": "+35020042010"}</script></head>
@@ -91,7 +91,8 @@
     </section>
     <div class="delivery-toolbar" role="group" aria-label="Filter by delivery app"><span class="delivery-label">Delivery apps</span><button class="delivery-chip active" data-action="delivery" data-delivery="all" aria-pressed="true">All</button><button class="delivery-chip" data-action="delivery" data-delivery="any" aria-pressed="false">Any app</button><button class="delivery-chip" data-action="delivery" data-delivery="hungrymonkey" aria-pressed="false">HungryMonkey</button><button class="delivery-chip" data-action="delivery" data-delivery="rockhero" aria-pressed="false">RockHero</button><button class="delivery-chip" data-action="delivery" data-delivery="nomnoms" aria-pressed="false">NomNom’s</button></div>
     <section aria-labelledby="results-heading">
-      <div class="results-toolbar"><div class="results-title"><h2 id="results-heading" tabindex="-1">All places</h2><span class="result-total" id="result-total">122</span></div><div class="result-actions"><div class="view-toggle" role="group" aria-label="Display layout"><button data-action="layout" data-layout="grid" aria-pressed="true" aria-label="Grid view" title="Grid view"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg></button><button data-action="layout" data-layout="list" aria-pressed="false" aria-label="List view" title="List view"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></button></div></div></div>
+      <div class="results-toolbar"><div class="results-title"><h2 id="results-heading" tabindex="-1">All places</h2><span class="result-total" id="result-total">122</span></div><div class="result-actions"><button class="availability-toggle" type="button" data-action="open-now" aria-pressed="false" aria-describedby="availability-note" hidden>Open now</button><div class="view-toggle" role="group" aria-label="Display layout"><button data-action="layout" data-layout="grid" aria-pressed="true" aria-label="Grid view" title="Grid view"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg></button><button data-action="layout" data-layout="list" aria-pressed="false" aria-label="List view" title="List view"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></button></div></div></div>
+      <p class="availability-note" id="availability-note" hidden>Based on published venue hours in Gibraltar. Kitchen hours may differ.</p>
       <div id="active-filters" class="active-filters" hidden></div>
       <p id="results-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true">122 restaurants in the directory.</p>
       <div id="restaurant-grid" class="restaurant-grid"></div>
@@ -104,7 +105,8 @@
 <dialog id="place-dialog" class="place-dialog" aria-labelledby="place-title"></dialog>
 <dialog id="info-dialog" class="info-dialog" aria-labelledby="info-title"></dialog>
 <div id="toast" class="toast" role="status" aria-live="polite"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span id="toast-message"></span></div>
-<script src="/assets/data.js?v=20261109-venue-audit" defer></script>
-<script src="/assets/app.js?v=20261109-venue-audit" defer></script>
+<script src="/assets/data.js?v=20261109-open-now" defer></script>
+<script src="/assets/hours.js?v=20261109-open-now" defer></script>
+<script src="/assets/app.js?v=20261109-open-now" defer></script>
 </body>
 </html>

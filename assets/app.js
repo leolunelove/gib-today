@@ -22,7 +22,13 @@
   const byId = new Map(venues.map(venue => [venue.id, venue]));
   let savedIds;
   try { const parsed = JSON.parse(storage.get('saved', '[]')); savedIds = Array.isArray(parsed) ? parsed.filter(id => byId.has(id)) : []; } catch { savedIds = []; }
-  const state = { view: 'explore', query: '', area: 'all', cuisine: 'all', collection: 'all', sort: 'directory', online: false, delivery: 'all', layout: storage.get('layout', 'grid') === 'list' ? 'list' : 'grid', saved: new Set(savedIds) };
+  const state = { view: 'explore', query: '', area: 'all', cuisine: 'all', collection: 'all', sort: 'directory', online: false, openNow: false, delivery: 'all', layout: storage.get('layout', 'grid') === 'list' ? 'list' : 'grid', saved: new Set(savedIds) };
+  const hours = window.GibHours;
+  const publishedSchedules = hours ? venues.filter(venue => venue.openingHours) : [];
+  const holidays = new Set(data.openingHolidays || []);
+  const availabilityToggle = $('[data-action="open-now"]');
+  let availability = new Map();
+  let availabilityTimer;
   const grid = $('#restaurant-grid');
   const placeDialog = $('#place-dialog');
   const infoDialog = $('#info-dialog');
@@ -114,6 +120,7 @@
         node = template.content.firstElementChild;
         cardCache.set(venue.id,node);
       }
+      syncCardHours(node, venue.id);
       const current = grid.children[index];
       if (current !== node) grid.insertBefore(node,current || null);
       if (!node.dataset.arrived) cardObserver?.observe(node);
@@ -124,6 +131,25 @@
     } else if (focusedCard && document.contains(focused) && document.activeElement !== focused) {
       focused.focus({preventScroll:true});
     }
+  }
+  function syncCardHours(node, id) {
+    const label = $('.card-hours', node);
+    const status = availability.get(id) || '';
+    if (!label || label.dataset.status === status) return;
+    label.dataset.status = status;
+    label.hidden = !status;
+    label.textContent = status === 'open' ? 'Open now' : status === 'closed' ? 'Closed now' : '';
+  }
+  function refreshAvailability() {
+    if (!publishedSchedules.length) return;
+    clearTimeout(availabilityTimer);
+    const time = hours.localTime(new Date());
+    const next = new Map(publishedSchedules.map(venue => [venue.id, hours.status(venue.openingHours, time, holidays)]));
+    const openSetChanged = publishedSchedules.some(({id}) => (next.get(id) === 'open') !== (availability.get(id) === 'open'));
+    availability = next;
+    if (state.openNow && openSetChanged) render();
+    else for (const [id, node] of cardCache) syncCardHours(node, id);
+    if (!document.hidden) availabilityTimer = setTimeout(refreshAvailability, 60000 - Date.now() % 60000 + 25);
   }
   let filterMotion;
   const disclosureMotion = new WeakMap();
@@ -181,7 +207,7 @@
     const terms = normalise(state.query.trim()).split(/\s+/).filter(Boolean);
     const result = venues.filter(venue => {
       const haystack = searchable.get(venue.id);
-      return (state.view !== 'saved' || state.saved.has(venue.id)) && (state.area === 'all' || venue.area === state.area) && (state.cuisine === 'all' || venue.cuisine === state.cuisine) && (state.collection === 'all' || (venue.collections || []).includes(state.collection)) && (!state.online || Boolean(venue.reservationUrl)) && (state.delivery === 'all' || (venue.delivery || []).some(l=>state.delivery === 'any' || l.provider === state.delivery)) && terms.every(term => haystack.includes(term));
+      return (state.view !== 'saved' || state.saved.has(venue.id)) && (state.area === 'all' || venue.area === state.area) && (state.cuisine === 'all' || venue.cuisine === state.cuisine) && (state.collection === 'all' || (venue.collections || []).includes(state.collection)) && (!state.online || Boolean(venue.reservationUrl)) && (!state.openNow || availability.get(venue.id) === 'open') && (state.delivery === 'all' || (venue.delivery || []).some(l=>state.delivery === 'any' || l.provider === state.delivery)) && terms.every(term => haystack.includes(term));
     });
     if (state.sort === 'az') result.sort((a,b) => a.name.localeCompare(b.name, 'en'));
     if (state.sort === 'za') result.sort((a,b) => b.name.localeCompare(a.name, 'en'));
@@ -219,6 +245,7 @@
         <h3 class="card-title"><a href="${route}" data-action="open-place" data-id="${e(venue.id)}"><span>${e(venue.name)}</span>${icon('arrow')}</a></h3>
         <p class="card-description">${e(venue.shortDescription || venue.description)}</p>
         <div class="card-bottom">
+          ${venue.openingHours ? '<span class="card-hours" data-status="" title="Based on published venue hours in Gibraltar" hidden></span>' : ''}
           ${showContact ? `<span class="contact-type">${e(contactText)}</span>` : ''}
           ${deliveryNames.length ? `<p class="card-delivery" aria-label="Listed on ${e(deliveryNames.join(', '))}">${e(deliveryNames.join(' · '))}</p>` : ''}
         </div>
@@ -226,7 +253,7 @@
   }
   function emptyState() {
     const entirelyEmptySaved = state.view === 'saved' && state.saved.size === 0;
-    return `<div class="empty-state"><div class="empty-icon">${icon(entirelyEmptySaved ? 'bookmark' : 'search')}</div><h3>${entirelyEmptySaved ? 'No saved places yet' : 'No matching places'}</h3><p>${entirelyEmptySaved ? 'Bookmark a restaurant to keep it here for later.' : 'Try a different search or clear the filters.'}</p><button class="button secondary" data-action="${entirelyEmptySaved ? 'home' : 'reset-filters'}">${entirelyEmptySaved ? 'Explore the directory' : 'Clear all filters'} ${icon('arrow')}</button></div>`;
+    return `<div class="empty-state"><div class="empty-icon">${icon(entirelyEmptySaved ? 'bookmark' : 'search')}</div><h3>${entirelyEmptySaved ? 'No saved places yet' : 'No matching places'}</h3><p>${entirelyEmptySaved ? 'Bookmark a restaurant to keep it here for later.' : state.openNow ? 'No places with verified hours are open under these filters.' : 'Try a different search or clear the filters.'}</p><button class="button secondary" data-action="${entirelyEmptySaved ? 'home' : 'reset-filters'}">${entirelyEmptySaved ? 'Explore the directory' : 'Clear all filters'} ${icon('arrow')}</button></div>`;
   }
   function syncSaved() {
     $$('[data-saved-count]').forEach(el => { if(el.textContent !== String(state.saved.size)) el.textContent = state.saved.size; });
@@ -255,6 +282,8 @@
     $('#area-select').value = state.area;
     $('#sort-select').value = state.sort;
     $('#online-only').checked = state.online;
+    availabilityToggle.setAttribute('aria-pressed',String(state.openNow));
+    $('#availability-note').hidden = !state.openNow;
     $$('[data-action="delivery"]').forEach(button => { const active=button.dataset.delivery===state.delivery; button.setAttribute('aria-pressed',String(active)); button.classList.toggle('active',active); });
     $('#clear-search').hidden = !state.query;
     $('#search-hint').hidden = Boolean(state.query);
@@ -277,9 +306,9 @@
     const total = $('#result-total');
     if (total.textContent !== String(matches.length)) { total.textContent = matches.length; playMotion(total,[{transform:'translateY(3px)',opacity:.45},{transform:'none',opacity:1}],{duration:motion.quick}); }
     const oldHeading = $('#results-heading').textContent;
-    $('#results-heading').textContent = state.area !== 'all' ? state.area : state.collection !== 'all' ? data.collections.find(c=>c.id===state.collection)?.name || 'Collection' : hasSearch || state.cuisine !== 'all' || state.online || state.delivery !== 'all' ? 'Matching places' : state.view === 'saved' ? 'Bookmarks' : 'All places';
+    $('#results-heading').textContent = state.area !== 'all' ? state.area : state.collection !== 'all' ? data.collections.find(c=>c.id===state.collection)?.name || 'Collection' : hasSearch || state.cuisine !== 'all' || state.online || state.openNow || state.delivery !== 'all' ? 'Matching places' : state.view === 'saved' ? 'Bookmarks' : 'All places';
     if (oldHeading !== $('#results-heading').textContent) playMotion($('#results-heading'),[{opacity:.55},{opacity:1}],{duration:motion.quick});
-    $('#results-status').textContent = `${matches.length} restaurant${matches.length === 1 ? '' : 's'} ${state.view === 'saved' ? 'in your saved places' : 'in the directory'}${hasSearch ? ` matching “${state.query.trim()}”` : ''}.`;
+    $('#results-status').textContent = `${matches.length} restaurant${matches.length === 1 ? '' : 's'}${state.openNow ? ' open now' : ''} ${state.view === 'saved' ? 'in your saved places' : 'in the directory'}${hasSearch ? ` matching “${state.query.trim()}”` : ''}.`;
     const tokens = [];
     if (state.cuisine !== 'all') tokens.push(`<button class="active-token" data-action="clear-cuisine" aria-label="Remove cuisine filter">${escapeHTML(state.cuisine)} ${icon('close')}</button>`);
     if (state.area !== 'all') tokens.push(`<button class="active-token" data-action="clear-area" aria-label="Remove neighbourhood filter">${escapeHTML(state.area)} ${icon('close')}</button>`);
@@ -293,7 +322,7 @@
   }
   function resetFilters() {
     clearTimeout(searchTimeout);
-    state.query = ''; state.area = 'all'; state.cuisine = 'all'; state.collection = 'all'; state.online = false; state.delivery = 'all'; state.sort = 'directory';
+    state.query = ''; state.area = 'all'; state.cuisine = 'all'; state.collection = 'all'; state.online = false; state.openNow = false; state.delivery = 'all'; state.sort = 'directory';
     $('#search-input').value = '';
     render();
   }
@@ -739,6 +768,11 @@
       case 'delivery': state.delivery=button.dataset.delivery; animateUpdate(render); break;
       case 'clear-delivery': state.delivery='all'; animateUpdate(render); break;
       case 'clear-online': state.online=false; animateUpdate(render); break;
+      case 'open-now':
+        refreshAvailability();
+        state.openNow = !state.openNow;
+        animateUpdate(render);
+        break;
       case 'toggle-filters': toggleFilters(); break;
       case 'copy-phone': if (currentVenue) copyText(currentVenue.phone,'Phone number copied'); break;
       case 'copy-message': if ($('#message-preview')) copyText($('#message-preview').value,'Enquiry copied. Nothing has been sent.'); break;
@@ -775,6 +809,12 @@
   });
   window.addEventListener('hashchange',handleHash);
   window.addEventListener('popstate',handleHash);
+  if (publishedSchedules.length) {
+    availabilityToggle.hidden = false;
+    refreshAvailability();
+    document.addEventListener('visibilitychange', refreshAvailability);
+    window.addEventListener('pageshow', refreshAvailability);
+  }
   animateUpdate(render); syncTheme(); handleHash();
 })();
 

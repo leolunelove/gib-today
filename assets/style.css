@@ -1001,6 +1001,32 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:2px; 
 }
 .card-delivery::before { content: none; }
 .card-bottom .contact-type { text-decoration: underline; text-decoration-color: var(--brand); text-underline-offset: .23em; text-decoration-thickness: .13em; }
+.result-actions { gap: .55rem; }
+.availability-toggle {
+  display: inline-flex; align-items: center; gap: .4rem; min-height: 2.55rem;
+  padding: .45rem .65rem; border: 1px solid var(--line); border-radius: .22rem;
+  color: var(--ink); font-size: .75rem; font-weight: 700; white-space: nowrap;
+}
+.availability-toggle[aria-pressed="true"] { background: var(--brand); color: #202d27; border-color: #9b842f; }
+.availability-toggle::before, .card-hours::before {
+  content: ""; width: .36rem; height: .36rem; border-radius: 50%; flex: 0 0 auto;
+  border: 1px solid currentColor;
+}
+.availability-toggle[aria-pressed="true"]::before, .card-hours[data-status="open"]::before { background: currentColor; }
+.availability-note { margin: -.25rem 0 .85rem; font-size: .75rem; color: var(--muted); }
+.card-hours { display: inline-flex; align-items: center; gap: .35rem; font-size: .69rem; font-weight: 650; color: var(--muted); white-space: nowrap; }
+.card-hours[data-status="open"] { color: #34623e; }
+:root[data-theme="dark"] .card-hours[data-status="open"] { color: #a9d7a6; }
+@media (hover: hover) {
+  .availability-toggle[aria-pressed="false"]:hover { border-color: var(--muted); background: var(--surface); }
+}
+@media (max-width: 55em) {
+  .availability-toggle { min-height: 44px; }
+}
+@media (max-width: 23em) {
+  .results-toolbar { flex-wrap: wrap; }
+  .result-actions { margin-inline-start: auto; }
+}
 .restaurant-grid.list-mode { gap: .9rem; }
 .list-mode .restaurant-card { gap: .95rem; padding-bottom: .9rem; }
 .list-mode .card-content { display: flex; padding: .1rem 0 0; }
