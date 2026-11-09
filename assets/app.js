@@ -196,21 +196,21 @@
     return `<div class="editorial-cover" data-tone="${e(venue.coverTone || 'stone')}" aria-hidden="true"><span class="cover-kicker"><span>${e(venue.cuisine)}</span><span class="cover-number">Nº ${number}</span></span><span class="cover-title">${(venue.coverLines || [venue.name]).map(line=>`<span>${e(line)}</span>`).join('')}</span><svg class="cover-landscape" viewBox="0 0 400 180" fill="none"><path d="M0 145h400M0 159h400M0 173h400" stroke="currentColor"/><path d="M130 145l36-23 23-35 27-17 13-24 29-6 16 27 12 8 20 37 38 33Z" fill="currentColor"/><path d="M229 46l-13 24-27 17-23 35-36 23m128-105-8 35-21 26-6 44" stroke="var(--cover-bg)" stroke-width="2"/></svg><span class="cover-footer"><span>${e(venue.area)}</span><span>Explore ↗</span></span></div>`;
   }
   function contactLabel(venue) {
-    if (venue.onlineOrdering) return ['globe','Order direct'];
-    if ((venue.delivery || []).length) return ['globe','Menu & delivery'];
-    if (venue.tradingStatus === 'unconfirmed') return ['message','Check trading status'];
-    if (venue.reservationPolicy === 'walk-in') return ['compass','Walk in'];
-    if (venue.reservationUrl) return ['globe','Official booking page'];
-    if (venue.phone) return ['phone',venue.bookingMethod === 'call-reserve' ? 'Call to reserve' : 'Call for enquiries'];
-    if (venue.email) return ['mail','Email an enquiry'];
-    return ['message','Ask the venue'];
+    if (venue.onlineOrdering) return 'Order direct';
+    if (venue.tradingStatus === 'unconfirmed') return 'Check trading status';
+    if (venue.reservationPolicy === 'walk-in') return 'Walk in';
+    if (venue.reservationUrl) return 'Online booking';
+    if (venue.phone) return venue.bookingMethod === 'call-reserve' ? 'Call to reserve' : 'Call for enquiries';
+    if (venue.email) return 'Email an enquiry';
+    return 'Ask the venue';
   }
   function card(venue, index) {
     const e = escapeHTML, saved = state.saved.has(venue.id);
     const route = `/place/${encodeURIComponent(venue.id)}/`;
-    const [, contactText] = contactLabel(venue);
+    const contactText = contactLabel(venue);
     const deliveryNames = (venue.delivery || []).map(link =>
       (data.deliveryProviders || []).find(provider => provider.id === link.provider)?.name || link.provider);
+    const showContact = !deliveryNames.length || venue.onlineOrdering || venue.reservationUrl || venue.reservationPolicy === 'walk-in';
     return `<article class="restaurant-card" data-venue="${e(venue.id)}" style="--i:${index}">
       <div class="card-photo-wrap"><a class="card-photo" href="${route}" data-action="open-place" data-id="${e(venue.id)}" aria-label="View place at ${e(venue.name)}" tabindex="-1">${coverHTML(venue,index)}</a>
         <button class="save-button" data-action="save" data-id="${e(venue.id)}" aria-pressed="${saved}" aria-label="${saved ? 'Unsave' : 'Save'} ${e(venue.name)}" title="${saved ? 'Remove from saved places' : 'Save place'}">${icon('bookmark')}</button></div>
@@ -219,8 +219,8 @@
         <h3 class="card-title"><a href="${route}" data-action="open-place" data-id="${e(venue.id)}"><span>${e(venue.name)}</span>${icon('arrow')}</a></h3>
         <p class="card-description">${e(venue.shortDescription || venue.description)}</p>
         <div class="card-bottom">
-          ${deliveryNames.length ? `<p class="card-delivery" aria-label="Listed on ${e(deliveryNames.join(', '))}">${e(deliveryNames.join(' · '))}</p>` : `<span class="contact-type">${e(contactText)}</span>`}
-          ${venue.onlineOrdering && deliveryNames.length ? '<span class="contact-type">Order direct</span>' : ''}
+          ${showContact ? `<span class="contact-type">${e(contactText)}</span>` : ''}
+          ${deliveryNames.length ? `<p class="card-delivery" aria-label="Listed on ${e(deliveryNames.join(', '))}">${e(deliveryNames.join(' · '))}</p>` : ''}
         </div>
       </div></article>`;
   }
@@ -356,7 +356,13 @@
       ...delivery.map(link => ({source:link.source,checkedAt:link.checkedAt,note:provider(link.provider)+' restaurant listing.'}))
     ];
     const context = [venue.area, venue.cuisine, venue.cuisineDetail].filter(Boolean).map(normalise);
-    const tags = venue.tags.filter(tag => !context.some(label => label.includes(normalise(tag)))).slice(0,4);
+    const tags = venue.tags.filter(tag => tag !== 'Delivery apps' && !context.some(label => label.includes(normalise(tag)))).slice(0,4);
+    const menuInOrdering = venue.menuUrl === venue.onlineOrdering?.url || delivery.some(link => link.url === venue.menuUrl);
+    const siteLinks = [
+      venue.website ? sourceAnchor(venue.website,'Website') : '',
+      venue.tripadvisor ? sourceAnchor(venue.tripadvisor,'Tripadvisor reviews') : '',
+      ...['instagram','facebook'].filter(key => venue[key]).map(key => sourceAnchor(venue[key],key === 'instagram' ? 'Instagram' : 'Facebook'))
+    ].join('');
     const visit = `
       <section class="place-section reserve-block" aria-labelledby="reserve-title">
         <h3 id="reserve-title">${walkIn ? 'Walk in' : venue.visitType === 'visit-collection' ? 'Visit & collection' : 'Eat here'}</h3>
@@ -395,28 +401,28 @@
             <p class="dialog-description">${e(venue.description)}</p>
             ${tags.length ? `<p class="place-tags">${e(tags.join(' · '))}</p>` : ''}
             <nav class="place-quick-links" aria-label="Restaurant links">
-              ${venue.menuUrl ? sourceAnchor(venue.menuUrl,'Menu') : ''}
-              ${venue.website ? sourceAnchor(venue.website,'Website') : ''}
-              ${venue.tripadvisor ? sourceAnchor(venue.tripadvisor,'Tripadvisor reviews') : ''}
-              ${['instagram','facebook'].filter(key => venue[key]).map(key => sourceAnchor(venue[key],key === 'instagram' ? 'Instagram' : 'Facebook')).join('')}
+              ${venue.menuUrl && !menuInOrdering ? sourceAnchor(venue.menuUrl,'Menu') : ''}
+              ${sourceAnchor(googleMapsLink(venue),'Get directions')}
             </nav>
           </div>
         </header>
         <div class="place-layout">
-          <div class="place-main">${hasDirectOrder ? ordering + visit : visit + ordering}</div>
+          ${hasDirectOrder ? ordering : visit}
           <aside class="place-rail" aria-label="Plan your visit">
             <section class="visit-panel">
               <h3>Plan your visit</h3>
-              <div class="visit-fact"><span class="place-eyebrow">Address</span><address>${e(venue.address)}</address><a href="${e(googleMapsLink(venue))}" ${external}>Get directions ${icon('arrow')}</a></div>
+              <div class="visit-fact"><span class="place-eyebrow">Address</span><address>${e(venue.address)}</address></div>
               <div class="visit-fact"><span class="place-eyebrow">Opening hours</span><p>${e(venue.hours || 'Hours not verified. Check with the restaurant before visiting.')}</p></div>
               <details class="price-detail"><summary>Menu &amp; price notes</summary><p>${e(venue.priceNote || 'See the current menu for prices.')}</p></details>
             </section>
           </aside>
+          ${hasDirectOrder ? visit : ordering}
         </div>
         ${nearby.length ? `<section class="detail-section nearby-section"><h3>More in ${e(venue.area)}</h3>
           ${nearby.map(other => `<button class="similar-place" data-action="open-place" data-id="${e(other.id)}"><span>${e(other.name)}<small> · ${e(other.cuisine)}</small></span>${icon('arrow')}</button>`).join('')}
         </section>` : ''}
         <footer class="place-footer">
+          ${siteLinks ? `<nav class="place-quick-links" aria-label="Restaurant websites">${siteLinks}</nav>` : ''}
           <details class="source-details">
             <summary>Sources &amp; listing checks</summary>
             <p>Restaurant details checked ${e(venue.checkedAt || data.checkedAt)}. Delivery listings checked ${e(venue.deliveryCheckedAt || data.deliveryCheckedAt)}. ${delivery.length ? 'Confirm availability with the delivery app.' : 'No delivery app listing verified.'}</p>
