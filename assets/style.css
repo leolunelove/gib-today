@@ -38,7 +38,9 @@
   --shadow: 0 .18rem 0 #0003;
 }
 *, *::before, *::after { box-sizing: border-box; }
-html { font-size: clamp(.9375rem, 1.111111vw, 3rem); scroll-behavior: smooth; scrollbar-gutter: stable; }
+* { scrollbar-width: none; }
+::-webkit-scrollbar { display: none; }
+html { font-size: clamp(.9375rem, 1.111111vw, 3rem); scroll-behavior: smooth; }
 body { margin: 0; min-width: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: .9375rem; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { appearance: none; -webkit-tap-highlight-color: transparent; border: 0; background: none; cursor: pointer; }
@@ -111,7 +113,7 @@ kbd { font-family: inherit; font-size: .7rem; border: var(--hairline) solid var(
 .sidebar > .brand, .sidebar > .navigation, .sidebar-footer, .sidebar-note { flex-shrink: 0; }
 .sidebar-section { display: flex; flex-direction: column; min-height: 0; flex-shrink: 1; }
 .sidebar-label { flex-shrink: 0; }
-.areas { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.areas { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .area-item { flex-shrink: 0; }
 @media (min-aspect-ratio:16/10) and (min-width:55.001em) {
   .sidebar-note { display: none; }
@@ -234,7 +236,7 @@ kbd { font-family: inherit; font-size: .7rem; border: var(--hairline) solid var(
 dialog { color: var(--ink); border: var(--hairline) solid var(--line); padding: 0; background: var(--surface); box-shadow: 0 1rem 5rem #16201530; }
 dialog::backdrop { background: #18201657; backdrop-filter: blur(.2rem); animation: backdrop-in .25s ease both; }
 .place-dialog { margin: 0 0 0 auto; inset: 0 0 0 auto; width: clamp(26rem,37vw,50rem); max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 1.5rem 0 0 1.5rem; overflow: hidden; border-right: 0; }
-.dialog-scroll { overflow: auto; height: 100%; overscroll-behavior: contain; scrollbar-width: thin; }
+.dialog-scroll { overflow: auto; height: 100%; overscroll-behavior: contain; }
 .dialog-photo { position: relative; height: auto; aspect-ratio: 1.85; background: var(--soft); }
 .dialog-photo > img { width: 100%; height: 100%; object-fit: cover; }
 .dialog-photo .image-label { bottom: .9rem; left: 1.3rem; font-size: .62rem; }
@@ -826,7 +828,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:2px; 
 .dialog-current-name { flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-weight:750; font-size:.9rem; padding-left:.35rem; opacity:0; transform:translateY(4px); transition:opacity var(--motion-quick) ease,transform var(--motion-move) var(--ease-out); }
 .place-dialog.is-scrolled .dialog-top-actions { background:var(--surface); box-shadow:0 1px 0 var(--line),0 6px 18px #15201812; }
 .place-dialog.is-scrolled .dialog-current-name { opacity:1; transform:none; }
-@media(max-width:700px){html{scrollbar-gutter:auto}.dialog-current-name{font-size:.82rem}.dialog-top-actions{padding:.6rem}.dialog-scroll{scroll-padding-top:4.5rem}}
+@media(max-width:700px){.dialog-current-name{font-size:.82rem}.dialog-top-actions{padding:.6rem}.dialog-scroll{scroll-padding-top:4.5rem}}
 
 /* Every disclosure keeps the same quiet, reversible movement. */
 .disclosure>summary { display:flex; align-items:center; gap:.7rem; list-style:none; min-height:40px; }
