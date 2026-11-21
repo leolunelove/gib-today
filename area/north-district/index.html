@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#faf9f4">
+  <meta name="theme-color" content="#ffffff">
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
   <meta name="description" content="Find 4 restaurants and cafés in North District, Gibraltar. Compare menus, booking links, published opening hours and local delivery options.">
   <link rel="canonical" href="https://gib.today/area/north-district/">
@@ -20,11 +20,13 @@
     try {
       if (localStorage.getItem('table.v1.theme') === 'dark') {
         document.documentElement.dataset.theme = 'dark';
-        document.querySelector('meta[name="theme-color"]').content = '#1e1d1b';
+        document.querySelector('meta[name="theme-color"]').content = '#191b20';
       }
     } catch {}
   </script>
-  <link rel="stylesheet" href="/assets/style.css?v=20261121-menu-review">
+  <link rel="preload" href="/assets/public-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/style.css?v=20261121-crafted">
 <link rel="manifest" href="/site.webmanifest"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"><meta property="og:image" content="https://gib.today/assets/social/area-north-district-20261121.jpg"><meta property="og:image:secure_url" content="https://gib.today/assets/social/area-north-district-20261121.jpg"><meta property="og:image:type" content="image/jpeg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Places to eat in North District, Gibraltar"><meta property="og:locale" content="en_GB"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="North District restaurants, Gibraltar | Gib .today"><meta name="twitter:description" content="Find 4 restaurants and cafés in North District, Gibraltar. Compare menus, booking links, published opening hours and local delivery options."><meta name="twitter:image" content="https://gib.today/assets/social/area-north-district-20261121.jpg"><meta name="twitter:image:alt" content="Places to eat in North District, Gibraltar"><link rel="image_src" href="https://gib.today/assets/photos/nunos-960.webp"><script type="application/ld+json" id="page-schema">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://gib.today/#publisher","name":"Gib .today","url":"https://gib.today/","logo":{"@type":"ImageObject","url":"https://gib.today/assets/icon-512.png","width":512,"height":512}},{"@type":"WebSite","@id":"https://gib.today/#website","url":"https://gib.today/","name":"Gib .today","alternateName":"gib.today","inLanguage":"en-GB","publisher":{"@id":"https://gib.today/#publisher"}},{"@type":"ImageObject","@id":"https://gib.today/assets/photos/nunos-960.webp#image","contentUrl":"https://gib.today/assets/photos/nunos-960.webp","url":"https://gib.today/assets/photos/nunos-960.webp","width":960,"height":640,"caption":"Cheese and charcuterie platter pictured on Nunos at the Express website","creditText":"Nunos at the Express · official website","citation":"https://www.wearenunos.com/"},{"@type":"CollectionPage","@id":"https://gib.today/area/north-district/#webpage","url":"https://gib.today/area/north-district/","name":"North District restaurants, Gibraltar | Gib .today","description":"Find 4 restaurants and cafés in North District, Gibraltar. Compare menus, booking links, published opening hours and local delivery options.","inLanguage":"en-GB","isPartOf":{"@id":"https://gib.today/#website"},"publisher":{"@id":"https://gib.today/#publisher"},"primaryImageOfPage":{"@id":"https://gib.today/assets/photos/nunos-960.webp#image"},"thumbnailUrl":"https://gib.today/assets/photos/nunos-960.webp","breadcrumb":{"@id":"https://gib.today/area/north-district/#breadcrumb"},"mainEntity":{"@id":"https://gib.today/area/north-district/#places"}},{"@type":"BreadcrumbList","@id":"https://gib.today/area/north-district/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Restaurants in Gibraltar","item":"https://gib.today/"},{"@type":"ListItem","position":2,"name":"North District","item":"https://gib.today/area/north-district/"}]},{"@type":"ItemList","@id":"https://gib.today/area/north-district/#places","name":"Restaurants in North District, Gibraltar","numberOfItems":4,"itemListElement":[{"@type":"ListItem","position":1,"name":"Nunos at the Express","url":"https://gib.today/place/nunos/"},{"@type":"ListItem","position":2,"name":"54 Dining & Café","url":"https://gib.today/place/54-dining/"},{"@type":"ListItem","position":3,"name":"Laguna Bar","url":"https://gib.today/place/laguna-bar/"},{"@type":"ListItem","position":4,"name":"Freska World Trade Center","url":"https://gib.today/place/freska-wtc/"}]}]}</script>
 </head>
 <body>
@@ -87,7 +89,7 @@
   <main id="main" class="main" tabindex="-1">
     <header class="directory-heading"><p class="directory-label">Gibraltar</p><h1 id="page-title"><span class="marker-word">North District</span></h1></header>
     <div class="search-row" role="search" aria-label="Find a restaurant">
-      <div class="search-field"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><label class="sr-only" for="search-input">Search restaurants, areas or cuisines</label><input id="search-input" type="search" placeholder="Search restaurants, areas or cuisines…" autocomplete="off" spellcheck="false" maxlength="100"><button class="icon-button" id="clear-search" type="button" data-action="clear-search" aria-label="Clear search" hidden><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button><kbd aria-hidden="true" id="search-hint">/</kbd></div>
+      <div class="search-field"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><label class="sr-only" for="search-input">Search restaurants, areas or cuisines</label><input id="search-input" type="search" placeholder="Find a place…" autocomplete="off" spellcheck="false" maxlength="100"><button class="icon-button" id="clear-search" type="button" data-action="clear-search" aria-label="Clear search" hidden><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button><kbd aria-hidden="true" id="search-hint">/</kbd></div>
       <button class="filters-toggle" id="filters-toggle" aria-label="Filters" data-action="toggle-filters" aria-expanded="false" aria-controls="filter-panel"><svg class="icon" aria-hidden="true"><use href="#i-filter"/></svg><span class="filter-label">Filters</span><span class="filter-dot" id="filter-dot" hidden></span></button>
     </div>
     <section class="filter-panel" id="filter-panel" aria-label="More filters" hidden>
@@ -110,8 +112,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/nunos/" data-action="open-place" data-id="nunos" aria-label="View place at Nunos at the Express" tabindex="-1"><img class="venue-photo" src="/assets/photos/nunos-960.webp" srcset="/assets/photos/nunos-480.webp 480w, /assets/photos/nunos-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="Cheese and charcuterie platter pictured on Nunos at the Express website" width="960" height="640" style="object-position:50% 50%" loading="lazy" decoding="async"></a>
         <button class="save-button" data-action="save" data-id="nunos" aria-pressed="false" aria-label="Save Nunos at the Express" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>North District</span><span class="sep" aria-hidden="true"></span><span>Italian</span></p>
         <h3 class="card-title"><a href="/place/nunos/" data-action="open-place" data-id="nunos"><span>Nunos at the Express</span></a></h3>
+        <p class="card-subtitle"><span>North District</span><span class="sep" aria-hidden="true"></span><span>Italian</span></p>
         <p class="card-description">Handmade pasta at the Holiday Inn Express.</p>
         <div class="card-bottom">
           <span class="card-hours" data-status="" title="Based on published venue hours in Gibraltar" hidden></span>
@@ -122,8 +124,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/54-dining/" data-action="open-place" data-id="54-dining" aria-label="View place at 54 Dining &amp; Café" tabindex="-1"><img class="venue-photo" src="/assets/photos/54-dining-venue-20261021-960.webp" srcset="/assets/photos/54-dining-venue-20261021-480.webp 480w, /assets/photos/54-dining-venue-20261021-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="The dining space at 54 Dining &amp; Café, set up for an event." width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"><span class="image-notice">Customer photo · Tripadvisor</span></a>
         <button class="save-button" data-action="save" data-id="54-dining" aria-pressed="false" aria-label="Save 54 Dining &amp; Café" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>North District</span><span class="sep" aria-hidden="true"></span><span>European</span></p>
         <h3 class="card-title"><a href="/place/54-dining/" data-action="open-place" data-id="54-dining"><span>54 Dining &amp; Café</span></a></h3>
+        <p class="card-subtitle"><span>North District</span><span class="sep" aria-hidden="true"></span><span>European</span></p>
         <p class="card-description">Breakfasts, churros, seafood and meat dishes at Bayside.</p>
         <div class="card-bottom">
           
@@ -134,8 +136,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/laguna-bar/" data-action="open-place" data-id="laguna-bar" aria-label="View place at Laguna Bar" tabindex="-1"><img class="venue-photo" src="/assets/photos/laguna-bar-venue-20261021-960.webp" srcset="/assets/photos/laguna-bar-venue-20261021-480.webp 480w, /assets/photos/laguna-bar-venue-20261021-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="Laguna Bar · customer photograph of the venue’s storefront, seating or interior." width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"><span class="image-notice">Customer photo · Google Maps</span></a>
         <button class="save-button" data-action="save" data-id="laguna-bar" aria-pressed="false" aria-label="Save Laguna Bar" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>North District</span><span class="sep" aria-hidden="true"></span><span>Café</span></p>
         <h3 class="card-title"><a href="/place/laguna-bar/" data-action="open-place" data-id="laguna-bar"><span>Laguna Bar</span></a></h3>
+        <p class="card-subtitle"><span>North District</span><span class="sep" aria-hidden="true"></span><span>Café</span></p>
         <p class="card-description">Churros, breakfast rolls and hot drinks on Corral Road.</p>
         <div class="card-bottom">
           
@@ -146,8 +148,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/freska-wtc/" data-action="open-place" data-id="freska-wtc" aria-label="View place at Freska World Trade Center" tabindex="-1"><img class="venue-photo" src="/assets/photos/freska-wtc-venue-20261021-960.webp" srcset="/assets/photos/freska-wtc-venue-20261021-480.webp 480w, /assets/photos/freska-wtc-venue-20261021-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="The counter and seating inside Freska at the World Trade Center." width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"></a>
         <button class="save-button" data-action="save" data-id="freska-wtc" aria-pressed="false" aria-label="Save Freska World Trade Center" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>North District</span><span class="sep" aria-hidden="true"></span><span>Brunch</span></p>
         <h3 class="card-title"><a href="/place/freska-wtc/" data-action="open-place" data-id="freska-wtc"><span>Freska World Trade Center</span></a></h3>
+        <p class="card-subtitle"><span>North District</span><span class="sep" aria-hidden="true"></span><span>Brunch</span></p>
         <p class="card-description">Breakfast, salads, sandwiches and coffee at the World Trade Center.</p>
         <div class="card-bottom">
           <span class="card-hours" data-status="" title="Based on published venue hours in Gibraltar" hidden></span>
@@ -166,6 +168,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span id="toast-message"></span></div>
 <script src="/assets/data.js?v=20261121-menu-review" defer></script>
 <script src="/assets/hours.js?v=20261121-meals-fluid" defer></script>
-<script src="/assets/app.js?v=20261121-menu-review" defer></script>
+<script src="/assets/app.js?v=20261121-crafted" defer></script>
 </body>
 </html>

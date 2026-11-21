@@ -139,6 +139,7 @@
     availability = next;
     if (state.openNow && openSetChanged) render();
     else for (const [id, node] of cardCache) syncCardHours(node, id);
+    if (currentVenue) syncCardHours(placeDialog,currentVenue.id);
     if (!document.hidden) availabilityTimer = setTimeout(refreshAvailability, 60000 - Date.now() % 60000 + 25);
   }
   let filterMotion;
@@ -231,8 +232,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="${route}" data-action="open-place" data-id="${e(venue.id)}" aria-label="View place at ${e(venue.name)}" tabindex="-1">${coverHTML(venue,index)}</a>
         <button class="save-button" data-action="save" data-id="${e(venue.id)}" aria-pressed="${saved}" aria-label="${saved ? 'Unsave' : 'Save'} ${e(venue.name)}" title="${saved ? 'Remove from saved places' : 'Save place'}">${icon('bookmark')}</button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>${e(venue.area)}</span><span class="sep" aria-hidden="true"></span><span>${e(venue.cuisine)}</span></p>
         <h3 class="card-title"><a href="${route}" data-action="open-place" data-id="${e(venue.id)}"><span>${e(venue.name)}</span></a></h3>
+        <p class="card-subtitle"><span>${e(venue.area)}</span><span class="sep" aria-hidden="true"></span><span>${e(venue.cuisine)}</span></p>
         <p class="card-description">${e(venue.shortDescription || venue.description)}</p>
         <div class="card-bottom">
           ${venue.openingHours ? '<span class="card-hours" data-status="" title="Based on published venue hours in Gibraltar" hidden></span>' : ''}
@@ -243,7 +244,7 @@
   }
   function emptyState() {
     const entirelyEmptySaved = state.view === 'saved' && state.saved.size === 0;
-    return `<div class="empty-state"><div class="empty-icon">${icon(entirelyEmptySaved ? 'bookmark' : 'search')}</div><h3>${entirelyEmptySaved ? 'No saved places yet' : 'No matching places'}</h3><p>${entirelyEmptySaved ? 'Bookmark a restaurant to keep it here for later.' : state.openNow ? 'No places with verified hours are open under these filters.' : 'Try a different search or clear the filters.'}</p><button class="button secondary" data-action="${entirelyEmptySaved ? 'home' : 'reset-filters'}">${entirelyEmptySaved ? 'Explore the directory' : 'Clear all filters'} ${icon('arrow')}</button></div>`;
+    return `<div class="empty-state"><div class="empty-icon">${icon(entirelyEmptySaved ? 'bookmark' : 'search')}</div><h3>${entirelyEmptySaved ? 'Keep a few favourites' : 'Nothing quite matches'}</h3><p>${entirelyEmptySaved ? 'Save a place with the bookmark button. Your shortlist stays in this browser.' : state.openNow ? 'No matches are open according to the hours we’ve checked. Clear the filters to see more places.' : state.query.trim() ? `No matches for “${escapeHTML(state.query.trim())}” with these filters. Try another name, area or cuisine.` : 'Try another meal or clear the filters to see more places.'}</p><button class="button secondary" data-action="${entirelyEmptySaved ? 'home' : 'reset-filters'}">${entirelyEmptySaved ? 'Find a place' : 'Clear all filters'}</button></div>`;
   }
   function syncSaved() {
     $$('[data-saved-count]').forEach(el => { if(el.textContent !== String(state.saved.size)) el.textContent = state.saved.size; });
@@ -279,7 +280,10 @@
     $('#delivery-select').value = state.delivery;
     $('#clear-search').hidden = !state.query;
     $('#search-hint').hidden = Boolean(state.query);
-    $('#filter-dot').hidden = state.area === 'all' && state.cuisine === 'all' && state.collection === 'all' && !state.online && state.delivery === 'all' && state.sort === 'directory';
+    const filterCount = [state.area !== 'all', state.cuisine !== 'all', state.collection !== 'all', state.online, state.delivery !== 'all', state.sort !== 'directory'].filter(Boolean).length;
+    $('#filter-dot').hidden = !filterCount;
+    $('#filter-dot').textContent = filterCount;
+    $('#filters-toggle').setAttribute('aria-label',filterCount ? `Filters, ${filterCount} active` : 'Filters');
     $('#breadcrumb-page').textContent = state.view === 'saved' ? 'Saved places' : 'Explore';
     const pageTitle = $('#page-title');
     if (pageTitle.dataset.view !== `${state.view}:${state.area}`) {
@@ -287,6 +291,14 @@
       pageTitle.innerHTML = state.view === 'saved' ? 'Your <span class="marker-word">saved places</span>' : state.area !== 'all' ? `<span class="marker-word">${escapeHTML(state.area)}</span>` : 'Where to <span class="marker-word">eat</span>';
     }
     syncSaved();
+    syncMealMarker();
+  }
+  function syncMealMarker() {
+    const bar = $('.meal-toolbar'), active = $('.meal-chip.active',bar);
+    if (!active) return;
+    const inset = parseFloat(getComputedStyle(active).fontSize) * .4;
+    bar.style.setProperty('--meal-left',`${active.offsetLeft+inset}px`);
+    bar.style.setProperty('--meal-width',`${Math.max(0,active.offsetWidth-inset*2)}px`);
   }
   function render() {
     const focusedToken = document.activeElement?.closest('.active-token');
@@ -305,7 +317,7 @@
     if (state.collection !== 'all') tokens.push(`<button class="active-token" data-action="clear-collection" aria-label="Remove collection filter">${escapeHTML(data.collections.find(c=>c.id===state.collection)?.name || 'Collection')} ${icon('close')}</button>`);
     if (state.online) tokens.push(`<button class="active-token" data-action="clear-online" aria-label="Remove online reservation filter">Online reservation page ${icon('close')}</button>`);
     if (state.delivery !== 'all') tokens.push(`<button class="active-token" data-action="clear-delivery" aria-label="Remove delivery app filter">${escapeHTML(state.delivery==='any'?'Delivery apps':data.deliveryProviders.find(p=>p.id===state.delivery)?.name || 'Delivery')} ${icon('close')}</button>`);
-    $('#active-filters').innerHTML = tokens.join('');
+    $('#active-filters').innerHTML = tokens.join('') + (tokens.length > 1 ? '<button class="text-button" data-action="reset-filters">Clear all filters</button>' : '');
     $('#active-filters').hidden = !tokens.length;
     if (focusedToken) ($('#active-filters').children[Math.min(tokenIndex,tokens.length-1)] || $('#filters-toggle')).focus({preventScroll:true});
     syncControls();
@@ -333,7 +345,7 @@
     if (state.saved.has(id)) state.saved.delete(id); else state.saved.add(id);
     const persisted = storage.set('saved', JSON.stringify([...state.saved]));
     if (state.view === 'saved') animateUpdate(render); else syncSaved();
-    notify(persisted ? (state.saved.has(id) ? `${venue.name} — saved for later.` : `${venue.name} — removed.`) : 'Saved for this visit. Browser storage is unavailable.');
+    notify(persisted ? (state.saved.has(id) ? 'Saved for later.' : 'Removed from saved places.') : 'Saved for this visit. Browser storage is unavailable.');
   }
   function safeHistoryHash(hash) {
     try { history.replaceState(null,'',`${location.pathname}${location.search}${hash}`); } catch { /* file previews may restrict History API; the directory still works. */ }
@@ -380,7 +392,9 @@
     const menuInOrdering = venue.menuUrl === venue.onlineOrdering?.url || delivery.some(link => link.url === venue.menuUrl);
     const menuLinks = venue.menuLinks?.length
       ? venue.menuLinks.map(link => sourceAnchor(link.url, link.label)).join('')
-      : venue.menuUrl ? sourceAnchor(venue.menuUrl, menuInOrdering ? 'Menu · '+(delivery.find(link => link.url === venue.menuUrl) ? provider(delivery.find(link => link.url === venue.menuUrl).provider) : 'live ordering') : 'Menu') : '';
+      : venue.menuUrl ? sourceAnchor(venue.menuUrl, menuInOrdering ? 'Menu · '+(delivery.find(link => link.url === venue.menuUrl) ? provider(delivery.find(link => link.url === venue.menuUrl).provider) : 'live ordering') : 'Menu')
+      : hasDirectOrder ? sourceAnchor(venue.onlineOrdering.url,'Live ordering menu')
+      : delivery.filter(link => !venue.menuSources?.length || venue.menuSources.includes(link.url)).map(link => sourceAnchor(link.url,'Menu · '+provider(link.provider))).join('');
     const siteLinks = [
       venue.website ? sourceAnchor(venue.website,'Website') : '',
       venue.tripadvisor ? sourceAnchor(venue.tripadvisor,'Tripadvisor reviews') : '',
@@ -388,7 +402,7 @@
     ].join('');
     const visit = `
       <section class="place-section reserve-block" aria-labelledby="reserve-title">
-        <h3 id="reserve-title">${walkIn ? 'Walk in' : venue.visitType === 'visit-collection' ? 'Visit & collection' : 'Eat here'}</h3>
+        <h2 id="reserve-title">${walkIn ? 'Walk in' : venue.visitType === 'visit-collection' ? 'Visit & collection' : 'Eat here'}</h2>
         ${walkIn ? '<p class="walkin-note">Walk-ins only, according to the official listing.</p>' : `
           <div class="contact-buttons">${onlineButton}${phoneButton}${venue.whatsapp ? action(venue.whatsapp, 'Message on WhatsApp', '', false, 'message') : ''}${emailButton}</div>`}
         ${venue.reservationNote ? `<details class="booking-notes"><summary>Booking notes</summary><p class="reservation-note">${e(venue.reservationNote)}</p></details>` : ''}
@@ -397,8 +411,8 @@
       </section>`;
     const ordering = hasOrderLinks ? `
       <section class="place-section order-section" aria-labelledby="order-title">
-        <h3 id="order-title">Order &amp; delivery</h3>
-        ${hasDirectOrder ? `<div class="direct-order">${action(venue.onlineOrdering.url, venue.onlineOrdering.label, venue.onlineOrdering.provider, true, 'arrow')}</div>` : ''}
+        <h2 id="order-title">Order &amp; delivery</h2>
+        ${hasDirectOrder ? `<div class="direct-order">${action(venue.onlineOrdering.url, venue.onlineOrdering.label, venue.onlineOrdering.provider, true, 'external')}</div>` : ''}
         ${delivery.length ? `
           <div class="delivery-options">${deliveryLinks}</div>
           <p class="place-fineprint">Availability varies by app.</p>` : ''}
@@ -410,7 +424,7 @@
     const nearby = venues.filter(other => other.id !== venue.id && other.area === venue.area).slice(0,2);
     return `
       <div class="dialog-top-actions">
-        <a class="place-back" href="/" data-action="close-place" autofocus>${icon('arrow')}<span>Back to places</span></a>
+        <a class="place-back" href="/" data-action="close-place" autofocus>${icon('chevron')}<span>Back to places</span></a>
         <span class="dialog-current-name" aria-hidden="true">${e(venue.name)}</span>
         <button class="icon-button" data-action="share-place" aria-label="Copy link to ${e(venue.name)}" title="Copy place link">${icon('link')}</button>
         <button class="icon-button" data-action="save" data-id="${e(venue.id)}" aria-pressed="${state.saved.has(venue.id)}" aria-label="Save ${e(venue.name)}">${icon('bookmark')}</button>
@@ -423,27 +437,28 @@
             <h1 id="place-title"><span class="marker-word">${e(venue.name)}</span></h1>
             <p class="dialog-description">${e(venue.description)}</p>
             ${venue.meals?.length ? `<p class="place-meals" aria-label="Meal suggestions">${venue.meals.map(meal => e(meal[0].toUpperCase()+meal.slice(1))).join(' · ')}</p>` : ''}
-            <nav class="place-quick-links" aria-label="Restaurant links">
-              ${menuLinks}
-              ${sourceAnchor(googleMapsLink(venue),'Get directions')}
-            </nav>
-            ${venue.menuNote ? `<p class="place-menu-note">${e(venue.menuNote)}</p>` : ''}
+            ${menuLinks ? `<section class="place-menu-block" aria-labelledby="menu-title">
+              <div class="menu-heading"><h2 id="menu-title">Menus</h2>${venue.menuCheckedAt ? `<span class="menu-checked">Checked ${e(new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(venue.menuCheckedAt+'T12:00:00Z')))}</span>` : ''}</div>
+              <nav class="place-menu-links" aria-label="Restaurant menus">${menuLinks}</nav>
+              ${venue.menuNote ? `<p class="place-menu-note">${e(venue.menuNote)}</p>` : ''}
+            </section>` : ''}
           </div>
         </header>
         <div class="place-layout">
           ${hasDirectOrder ? ordering : visit}
           <aside class="place-rail" aria-label="Plan your visit">
             <section class="visit-panel">
-              <h3>Plan your visit</h3>
-              <div class="visit-fact"><span class="place-eyebrow">Address</span><address>${e(venue.address)}</address></div>
+              <h2>Plan your visit</h2>
+              ${venue.openingHours ? '<div class="place-hours-status"><span class="card-hours" data-status="" hidden></span></div>' : ''}
+              <div class="visit-fact"><span class="place-eyebrow">Address</span><address>${e(venue.address)}</address>${sourceAnchor(googleMapsLink(venue),'Get directions')}</div>
               <div class="visit-fact"><span class="place-eyebrow">Opening hours</span><p>${e(venue.hours || 'Hours not verified. Check with the restaurant before visiting.')}</p></div>
               <details class="price-detail"><summary>Menu &amp; price notes</summary><p>${e(venue.priceNote || 'See the current menu for prices.')}</p></details>
             </section>
           </aside>
           ${hasDirectOrder ? visit : ordering}
         </div>
-        ${nearby.length ? `<section class="detail-section nearby-section"><h3>More in ${e(venue.area)}</h3>
-          ${nearby.map(other => `<a class="similar-place" href="/place/${e(other.id)}/" data-action="open-place" data-id="${e(other.id)}"><span>${e(other.name)}<small> · ${e(other.cuisine)}</small></span>${icon('arrow')}</a>`).join('')}
+        ${nearby.length ? `<section class="detail-section nearby-section"><h2>More in ${e(venue.area)}</h2><div class="nearby-places">
+          ${nearby.map(other => `<a class="similar-place" href="/place/${e(other.id)}/" data-action="open-place" data-id="${e(other.id)}"><span class="similar-photo" data-venue="${e(other.id)}" aria-hidden="true">${coverHTML(other,4)}</span><span>${e(other.name)}<small>${e(other.cuisine)}</small></span></a>`).join('')}</div>
         </section>` : ''}
         <footer class="place-footer">
           ${siteLinks ? `<nav class="place-quick-links" aria-label="Restaurant websites">${siteLinks}</nav>` : ''}
@@ -498,6 +513,7 @@
     updateMetadata(venue);
     updateMessage();
     syncSaved();
+    syncCardHours(placeDialog,venue.id);
   }
   function syncScrollLock() {
     document.documentElement.style.overflow = document.querySelector('dialog[open]') ? 'hidden' : '';
@@ -513,7 +529,7 @@
     dialog.classList.remove('closing');
   }
   const dialogRest = {opacity:1,transform:'none'};
-  const dialogEdge = {opacity:.55,transform:'translateY(.4rem)'};
+  const dialogEdge = {opacity:.55,transform:'translateY(.5rem)'};
   function animateDialog(dialog, from, opening) {
     cancelDialogClose(dialog);
     dialog.classList.toggle('closing',!opening);
@@ -572,7 +588,7 @@
     if (!infoDialog.open) openModal(infoDialog);
     infoDialog.scrollTop = 0;
     infoDialog.classList.remove('is-scrolled');
-    if (replacing) playMotion($('.info-content',infoDialog),[{opacity:.25,transform:'translateY(8px)'},{opacity:1,transform:'none'}]);
+    if (replacing) playMotion($('.info-content',infoDialog),[{opacity:.25,transform:'translateY(.35rem)'},{opacity:1,transform:'none'}]);
     $('.close-info', infoDialog).focus({preventScroll:true});
     syncScrollLock();
   }
@@ -796,11 +812,11 @@
     if (email && data.contactSendingEnabled === false) {
       const restaurantEmail = decodeURIComponent(contactTarget.pathname).toLowerCase() !== data.contactEmail.toLowerCase();
       const title = /correction/i.test(subject) ? 'Report a correction' : /suggest/i.test(subject) ? 'Suggest a place' : /owner|listing update/i.test(subject) ? 'Update a listing' : 'Get in touch.';
-      contactDialog.innerHTML = `<div class="contact-form"><button type="button" class="icon-button contact-close" aria-label="Close contact form" autofocus>${icon('close')}</button><p class="dialog-kicker">${/correction/i.test(subject) ? 'Corrections' : /suggest/i.test(subject) ? 'Suggestions' : /owner|listing update/i.test(subject) ? 'Listing updates' : 'Contact'}</p><h2 id="contact-title">${title}</h2><div class="contact-unavailable"><strong>Messages are taking a breather.</strong><p>Online enquiries are temporarily unavailable.${restaurantEmail ? ' You can still use this restaurant’s phone, WhatsApp or official booking link where listed.' : ' Please check back to send a suggestion or update.'}</p></div><button class="button secondary contact-back" type="button">${currentVenue ? 'Back to the restaurant' : 'Back to exploring'} ${icon('arrow')}</button></div>`;
+      contactDialog.innerHTML = `<div class="contact-form"><button type="button" class="icon-button contact-close" aria-label="Close contact form" autofocus>${icon('close')}</button><p class="dialog-kicker">${/correction/i.test(subject) ? 'Corrections' : /suggest/i.test(subject) ? 'Suggestions' : /owner|listing update/i.test(subject) ? 'Listing updates' : 'Contact'}</p><h2 id="contact-title">${title}</h2><div class="contact-unavailable"><strong>Messages are taking a breather.</strong><p>Online enquiries are temporarily unavailable.${restaurantEmail ? ' You can still use this restaurant’s phone, WhatsApp or official booking link where listed.' : ' Please check back to send a suggestion or update.'}</p></div><button class="button secondary contact-back" type="button">${currentVenue ? 'Back to the restaurant' : 'Back to exploring'}</button></div>`;
       showContact(link);
       return;
     }
-    contactDialog.innerHTML = `<form class="contact-form"><button type="button" class="icon-button contact-close" aria-label="Close contact form">${icon('close')}</button><p class="dialog-kicker">${email ? 'Email enquiry' : phone ? 'Phone enquiry' : 'WhatsApp enquiry'}</p><h2 id="contact-title">${escapeHTML(email ? emailTitle : subject)}</h2><p>${email ? 'Send your message here. Replies go to the email address you provide.' : phone ? 'Add a note for your call, then open your phone app.' : 'Prepare your message, then send it in WhatsApp.'}</p><label>Your name${email ? '' : ' (optional)'}<input name="name" autocomplete="name" ${email ? 'required' : ''} maxlength="100" placeholder="Name"></label>${email ? '<label>Your email<input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com"></label><div class="contact-honeypot" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>' : ''}<label>Message<textarea name="message" rows="5" maxlength="5000" required placeholder="Your message…"></textarea></label><p class="contact-destination">To: ${escapeHTML(editorialEmail ? 'Site editor' : email || phone ? decodeURIComponent(contactTarget.pathname) : currentVenue?.name || 'Restaurant')}</p><button class="button primary" type="submit">${phone ? 'Continue to call' : email ? 'Send message' : 'Open WhatsApp to send'} ${icon('arrow')}</button><p class="source-footnote">${email ? 'Your name, email and message are sent to the recipient shown above.' + (editorialEmail ? '' : ' Table enquiries need restaurant confirmation.') : 'You complete the action in the next app.'}</p><p class="contact-status" role="status" aria-live="polite"></p></form>`;
+    contactDialog.innerHTML = `<form class="contact-form"><button type="button" class="icon-button contact-close" aria-label="Close contact form">${icon('close')}</button><p class="dialog-kicker">${email ? 'Email enquiry' : phone ? 'Phone enquiry' : 'WhatsApp enquiry'}</p><h2 id="contact-title">${escapeHTML(email ? emailTitle : subject)}</h2><p>${email ? 'Send your message here. Replies go to the email address you provide.' : phone ? 'Add a note for your call, then open your phone app.' : 'Prepare your message, then send it in WhatsApp.'}</p><label>Your name${email ? '' : ' (optional)'}<input name="name" autocomplete="name" ${email ? 'required' : ''} maxlength="100" placeholder="Name"></label>${email ? '<label>Your email<input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com"></label><div class="contact-honeypot" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>' : ''}<label>Message<textarea name="message" rows="5" maxlength="5000" required placeholder="Your message…"></textarea></label><p class="contact-destination">To: ${escapeHTML(editorialEmail ? 'Site editor' : email || phone ? decodeURIComponent(contactTarget.pathname) : currentVenue?.name || 'Restaurant')}</p><button class="button primary" type="submit">${phone ? 'Continue to call' : email ? 'Send message' : 'Open WhatsApp to send'}</button><p class="source-footnote">${email ? 'Your name, email and message are sent to the recipient shown above.' + (editorialEmail ? '' : ' Table enquiries need restaurant confirmation.') : 'You complete the action in the next app.'}</p><p class="contact-status" role="status" aria-live="polite"></p></form>`;
     contactDialog.querySelector('textarea').value = contactTarget.searchParams.get('body') || '';
     showContact(link);
   }
@@ -808,7 +824,7 @@
     const screen = document.createElement('section');
     screen.className = 'contact-success';
     const thanks = {suggestion:'Thanks for sharing a place worth knowing.', correction:'Thanks for helping keep the details right.', owner:'Thanks for sending your listing update.', general:'Thanks for getting in touch.'};
-    screen.innerHTML = `<div class="contact-success-stamp" aria-hidden="true">${icon('check')}</div><h2 id="contact-title" tabindex="-1"><span class="marker-word">Message sent</span></h2><p class="contact-success-copy">${kind === 'restaurant' ? `Your enquiry is on its way to ${escapeHTML(venue.name)}${/[.!?]$/.test(venue.name) ? '' : '.'}` : thanks[kind]}</p><div class="contact-reply-note">${icon('mail')}<p>Replies go to<strong>${escapeHTML(payload.email)}</strong></p></div>${kind === 'restaurant' ? '<p class="contact-success-note">The restaurant will need to reply to confirm any booking.</p>' : ''}<button type="button" class="button primary contact-done">${placeDialog.open ? 'Back to the restaurant' : 'Back to exploring'} ${icon('arrow')}</button>`;
+    screen.innerHTML = `<div class="contact-success-stamp" aria-hidden="true">${icon('check')}</div><h2 id="contact-title" tabindex="-1"><span class="marker-word">Message sent</span></h2><p class="contact-success-copy">${kind === 'restaurant' ? `Your enquiry is on its way to ${escapeHTML(venue.name)}${/[.!?]$/.test(venue.name) ? '' : '.'}` : thanks[kind]}</p><div class="contact-reply-note">${icon('mail')}<p>Replies go to<strong>${escapeHTML(payload.email)}</strong></p></div>${kind === 'restaurant' ? '<p class="contact-success-note">The restaurant will need to reply to confirm any booking.</p>' : ''}<button type="button" class="button primary contact-done">${placeDialog.open ? 'Back to the restaurant' : 'Back to exploring'}</button>`;
     form.replaceWith(screen);
     $('.popup-current-name',contactDialog).textContent = 'Message sent';
     contactDialog.scrollTop = 0;
@@ -858,7 +874,7 @@
         fields.forEach(field => { field.disabled=false; });
         status.textContent = error.name === 'AbortError' ? 'The connection timed out. Your message is kept here; retrying will not send a duplicate.' : error instanceof SyntaxError || error instanceof TypeError ? 'Could not connect. Your message is kept here; please retry.' : error.message;
         status.classList.add('contact-error');
-        button.disabled=false; button.innerHTML=`Retry sending ${icon('arrow')}`;
+        button.disabled=false; button.textContent='Retry sending';
       } finally { clearTimeout(timeout); }
       return;
     }
@@ -868,12 +884,14 @@
     if(url.protocol === 'https:') { action.target='_blank'; action.rel='noopener noreferrer'; }
     contactDialog.append(action); action.click(); action.remove();
   });
-  document.addEventListener('error', event => {
-    const img=event.target;
+  function fallbackVenueImage(img) {
     if (!(img instanceof HTMLImageElement) || !img.classList.contains('venue-photo')) return;
     const venue=byId.get(img.closest('[data-venue]')?.dataset.venue) || currentVenue;
     if (venue) img.outerHTML=coverHTML({...venue,image:null});
-  },true);
+  }
+  document.addEventListener('error', event => fallbackVenueImage(event.target),true);
+  // A server-rendered image can fail before this deferred script attaches its listener.
+  $$('img.venue-photo').filter(img => img.complete && !img.naturalWidth).forEach(fallbackVenueImage);
   document.addEventListener('click', event => {
     const button = event.target.closest('[data-action]'); if (!button) return;
     const action = button.dataset.action;
@@ -988,7 +1006,8 @@
     scheduleScrollHints();
   }
   $('.areas').addEventListener('scroll',scheduleScrollHints,{passive:true});
-  window.addEventListener('resize',scheduleScrollHints,{passive:true});
+  window.addEventListener('resize',()=>{scheduleScrollHints();syncMealMarker();},{passive:true});
+  document.fonts?.ready.then(syncMealMarker);
   [$('.sidebar-section'),placeDialog].forEach(element => scrollHintObserver?.observe(element));
   const initialArea=location.pathname.match(/^\/area\/([a-z0-9-]+)\/?$/);
   if(initialArea) state.area=data.areas.find(item=>slugForArea(item)===initialArea[1]) || 'all';

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#faf9f4">
+  <meta name="theme-color" content="#ffffff">
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
   <meta name="description" content="Find 10 restaurants and cafés in South District, Gibraltar. Compare menus, booking links, published opening hours and local delivery options.">
   <link rel="canonical" href="https://gib.today/area/south-district/">
@@ -20,11 +20,13 @@
     try {
       if (localStorage.getItem('table.v1.theme') === 'dark') {
         document.documentElement.dataset.theme = 'dark';
-        document.querySelector('meta[name="theme-color"]').content = '#1e1d1b';
+        document.querySelector('meta[name="theme-color"]').content = '#191b20';
       }
     } catch {}
   </script>
-  <link rel="stylesheet" href="/assets/style.css?v=20261121-menu-review">
+  <link rel="preload" href="/assets/public-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/style.css?v=20261121-crafted">
 <link rel="manifest" href="/site.webmanifest"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"><meta property="og:image" content="https://gib.today/assets/social/area-south-district-20261121.jpg"><meta property="og:image:secure_url" content="https://gib.today/assets/social/area-south-district-20261121.jpg"><meta property="og:image:type" content="image/jpeg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Places to eat in South District, Gibraltar"><meta property="og:locale" content="en_GB"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="South District restaurants, Gibraltar | Gib .today"><meta name="twitter:description" content="Find 10 restaurants and cafés in South District, Gibraltar. Compare menus, booking links, published opening hours and local delivery options."><meta name="twitter:image" content="https://gib.today/assets/social/area-south-district-20261121.jpg"><meta name="twitter:image:alt" content="Places to eat in South District, Gibraltar"><link rel="image_src" href="https://gib.today/assets/photos/4-stagioni-960.webp"><script type="application/ld+json" id="page-schema">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://gib.today/#publisher","name":"Gib .today","url":"https://gib.today/","logo":{"@type":"ImageObject","url":"https://gib.today/assets/icon-512.png","width":512,"height":512}},{"@type":"WebSite","@id":"https://gib.today/#website","url":"https://gib.today/","name":"Gib .today","alternateName":"gib.today","inLanguage":"en-GB","publisher":{"@id":"https://gib.today/#publisher"}},{"@type":"ImageObject","@id":"https://gib.today/assets/photos/4-stagioni-960.webp#image","contentUrl":"https://gib.today/assets/photos/4-stagioni-960.webp","url":"https://gib.today/assets/photos/4-stagioni-960.webp","width":960,"height":640,"caption":"Pizza oven pictured on the official 4 Stagioni restaurant website","creditText":"4 Stagioni · official website","citation":"https://4stagionirestaurant.com/"},{"@type":"CollectionPage","@id":"https://gib.today/area/south-district/#webpage","url":"https://gib.today/area/south-district/","name":"South District restaurants, Gibraltar | Gib .today","description":"Find 10 restaurants and cafés in South District, Gibraltar. Compare menus, booking links, published opening hours and local delivery options.","inLanguage":"en-GB","isPartOf":{"@id":"https://gib.today/#website"},"publisher":{"@id":"https://gib.today/#publisher"},"primaryImageOfPage":{"@id":"https://gib.today/assets/photos/4-stagioni-960.webp#image"},"thumbnailUrl":"https://gib.today/assets/photos/4-stagioni-960.webp","breadcrumb":{"@id":"https://gib.today/area/south-district/#breadcrumb"},"mainEntity":{"@id":"https://gib.today/area/south-district/#places"}},{"@type":"BreadcrumbList","@id":"https://gib.today/area/south-district/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Restaurants in Gibraltar","item":"https://gib.today/"},{"@type":"ListItem","position":2,"name":"South District","item":"https://gib.today/area/south-district/"}]},{"@type":"ItemList","@id":"https://gib.today/area/south-district/#places","name":"Restaurants in South District, Gibraltar","numberOfItems":10,"itemListElement":[{"@type":"ListItem","position":1,"name":"4 Stagioni","url":"https://gib.today/place/4-stagioni/"},{"@type":"ListItem","position":2,"name":"Jumper’s Wheel","url":"https://gib.today/place/jumpers-wheel/"},{"@type":"ListItem","position":3,"name":"El Refugio Takeawey","url":"https://gib.today/place/el-refugio/"},{"@type":"ListItem","position":4,"name":"Piccadilly Garden Bar","url":"https://gib.today/place/piccadilly/"},{"@type":"ListItem","position":5,"name":"Special Olympics Cafe","url":"https://gib.today/place/special-olympics/"},{"@type":"ListItem","position":6,"name":"Kashmiri Curry House","url":"https://gib.today/place/kashmiri/"},{"@type":"ListItem","position":7,"name":"Mamma Mia","url":"https://gib.today/place/mamma-mia/"},{"@type":"ListItem","position":8,"name":"3 Bros Take-Out","url":"https://gib.today/place/3bros/"},{"@type":"ListItem","position":9,"name":"Dolphin Restaurant","url":"https://gib.today/place/dolphin/"},{"@type":"ListItem","position":10,"name":"Hall of Fame","url":"https://gib.today/place/hall-of-fame/"}]}]}</script>
 </head>
 <body>
@@ -87,7 +89,7 @@
   <main id="main" class="main" tabindex="-1">
     <header class="directory-heading"><p class="directory-label">Gibraltar</p><h1 id="page-title"><span class="marker-word">South District</span></h1></header>
     <div class="search-row" role="search" aria-label="Find a restaurant">
-      <div class="search-field"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><label class="sr-only" for="search-input">Search restaurants, areas or cuisines</label><input id="search-input" type="search" placeholder="Search restaurants, areas or cuisines…" autocomplete="off" spellcheck="false" maxlength="100"><button class="icon-button" id="clear-search" type="button" data-action="clear-search" aria-label="Clear search" hidden><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button><kbd aria-hidden="true" id="search-hint">/</kbd></div>
+      <div class="search-field"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><label class="sr-only" for="search-input">Search restaurants, areas or cuisines</label><input id="search-input" type="search" placeholder="Find a place…" autocomplete="off" spellcheck="false" maxlength="100"><button class="icon-button" id="clear-search" type="button" data-action="clear-search" aria-label="Clear search" hidden><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button><kbd aria-hidden="true" id="search-hint">/</kbd></div>
       <button class="filters-toggle" id="filters-toggle" aria-label="Filters" data-action="toggle-filters" aria-expanded="false" aria-controls="filter-panel"><svg class="icon" aria-hidden="true"><use href="#i-filter"/></svg><span class="filter-label">Filters</span><span class="filter-dot" id="filter-dot" hidden></span></button>
     </div>
     <section class="filter-panel" id="filter-panel" aria-label="More filters" hidden>
@@ -110,8 +112,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/4-stagioni/" data-action="open-place" data-id="4-stagioni" aria-label="View place at 4 Stagioni" tabindex="-1"><img class="venue-photo" src="/assets/photos/4-stagioni-960.webp" srcset="/assets/photos/4-stagioni-480.webp 480w, /assets/photos/4-stagioni-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="Pizza oven pictured on the official 4 Stagioni restaurant website" width="960" height="640" style="object-position:50% 50%" loading="lazy" decoding="async"></a>
         <button class="save-button" data-action="save" data-id="4-stagioni" aria-pressed="false" aria-label="Save 4 Stagioni" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Italian</span></p>
         <h3 class="card-title"><a href="/place/4-stagioni/" data-action="open-place" data-id="4-stagioni"><span>4 Stagioni</span></a></h3>
+        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Italian</span></p>
         <p class="card-description">Pasta, wood-fired pizza and a Rosia Road terrace.</p>
         <div class="card-bottom">
           <span class="card-hours" data-status="" title="Based on published venue hours in Gibraltar" hidden></span>
@@ -122,8 +124,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/jumpers-wheel/" data-action="open-place" data-id="jumpers-wheel" aria-label="View place at Jumper’s Wheel" tabindex="-1"><img class="venue-photo" src="/assets/photos/jumpers-wheel-venue-20261021-960.webp" srcset="/assets/photos/jumpers-wheel-venue-20261021-480.webp 480w, /assets/photos/jumpers-wheel-venue-20261021-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="Jumper’s Wheel · customer photograph of the venue’s storefront, seating or interior." width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"><span class="image-notice">Customer photo · Tripadvisor</span></a>
         <button class="save-button" data-action="save" data-id="jumpers-wheel" aria-pressed="false" aria-label="Save Jumper’s Wheel" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Spanish &amp; seafood</span></p>
         <h3 class="card-title"><a href="/place/jumpers-wheel/" data-action="open-place" data-id="jumpers-wheel"><span>Jumper’s Wheel</span></a></h3>
+        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Spanish &amp; seafood</span></p>
         <p class="card-description">Spanish tapas and seafood on Rosia Road.</p>
         <div class="card-bottom">
           
@@ -134,8 +136,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/el-refugio/" data-action="open-place" data-id="el-refugio" aria-label="View place at El Refugio Takeawey" tabindex="-1"><img class="venue-photo" src="/assets/photos/el-refugio-960.webp" srcset="/assets/photos/el-refugio-480.webp 480w, /assets/photos/el-refugio-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="Beef Burger 230gr 100% Beef (Combined) · El Refugio Takeawey" width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"></a>
         <button class="save-button" data-action="save" data-id="el-refugio" aria-pressed="false" aria-label="Save El Refugio Takeawey" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>European</span></p>
         <h3 class="card-title"><a href="/place/el-refugio/" data-action="open-place" data-id="el-refugio"><span>El Refugio Takeawey</span></a></h3>
+        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>European</span></p>
         <p class="card-description">Burgers, wraps and takeaway dishes on Shackleton Road.</p>
         <div class="card-bottom">
           
@@ -146,8 +148,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/piccadilly/" data-action="open-place" data-id="piccadilly" aria-label="View place at Piccadilly Garden Bar" tabindex="-1"><img class="venue-photo" src="/assets/photos/piccadilly-venue-20261024-960.webp" srcset="/assets/photos/piccadilly-venue-20261024-480.webp 480w, /assets/photos/piccadilly-venue-20261024-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="The entrance and covered terrace at Piccadilly Garden Bar." width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"><span class="image-notice">Photo · Sándor Vékás · Google Maps · 2024</span></a>
         <button class="save-button" data-action="save" data-id="piccadilly" aria-pressed="false" aria-label="Save Piccadilly Garden Bar" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>European</span></p>
         <h3 class="card-title"><a href="/place/piccadilly/" data-action="open-place" data-id="piccadilly"><span>Piccadilly Garden Bar</span></a></h3>
+        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>European</span></p>
         <p class="card-description">Pub dishes, breakfasts and drinks on Rosia Road.</p>
         <div class="card-bottom">
           
@@ -158,8 +160,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/special-olympics/" data-action="open-place" data-id="special-olympics" aria-label="View place at Special Olympics Cafe" tabindex="-1"><img class="venue-photo" src="/assets/photos/special-olympics-venue-20261021-960.webp" srcset="/assets/photos/special-olympics-venue-20261021-480.webp 480w, /assets/photos/special-olympics-venue-20261021-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="Special Olympics Cafe · customer photograph of the venue’s storefront, seating or interior." width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"><span class="image-notice">Customer photo · Tripadvisor</span></a>
         <button class="save-button" data-action="save" data-id="special-olympics" aria-pressed="false" aria-label="Save Special Olympics Cafe" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Café</span></p>
         <h3 class="card-title"><a href="/place/special-olympics/" data-action="open-place" data-id="special-olympics"><span>Special Olympics Cafe</span></a></h3>
+        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Café</span></p>
         <p class="card-description">Café breakfasts, sandwiches and lunch at Grandy Close.</p>
         <div class="card-bottom">
           
@@ -170,8 +172,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/kashmiri/" data-action="open-place" data-id="kashmiri" aria-label="View place at Kashmiri Curry House" tabindex="-1"><img class="venue-photo" src="/assets/photos/kashmiri-venue-20261021-960.webp" srcset="/assets/photos/kashmiri-venue-20261021-480.webp 480w, /assets/photos/kashmiri-venue-20261021-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="Kashmiri Curry House · customer photograph of the venue’s storefront, seating or interior." width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"><span class="image-notice">Customer photo · Google Maps</span></a>
         <button class="save-button" data-action="save" data-id="kashmiri" aria-pressed="false" aria-label="Save Kashmiri Curry House" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Indian</span></p>
         <h3 class="card-title"><a href="/place/kashmiri/" data-action="open-place" data-id="kashmiri"><span>Kashmiri Curry House</span></a></h3>
+        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Indian</span></p>
         <p class="card-description">Indian curries, tandoori dishes and takeaway meals on South Barrack Road.</p>
         <div class="card-bottom">
           
@@ -182,8 +184,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/mamma-mia/" data-action="open-place" data-id="mamma-mia" aria-label="View place at Mamma Mia" tabindex="-1"><img class="venue-photo" src="/assets/photos/mamma-mia-venue-20261021-960.webp" srcset="/assets/photos/mamma-mia-venue-20261021-480.webp 480w, /assets/photos/mamma-mia-venue-20261021-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="Mamma Mia · customer photograph of the venue’s storefront, seating or interior." width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"><span class="image-notice">Customer photo · Tripadvisor</span></a>
         <button class="save-button" data-action="save" data-id="mamma-mia" aria-pressed="false" aria-label="Save Mamma Mia" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Italian</span></p>
         <h3 class="card-title"><a href="/place/mamma-mia/" data-action="open-place" data-id="mamma-mia"><span>Mamma Mia</span></a></h3>
+        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Italian</span></p>
         <p class="card-description">Pizza, pasta and Italian dishes on Red Sands Road.</p>
         <div class="card-bottom">
           
@@ -194,8 +196,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/3bros/" data-action="open-place" data-id="3bros" aria-label="View place at 3 Bros Take-Out" tabindex="-1"><img class="venue-photo" src="/assets/photos/3bros-960.webp" srcset="/assets/photos/3bros-480.webp 480w, /assets/photos/3bros-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="The Bacon Cheese Bro + Fries · 3 Bros Take-Out" width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"></a>
         <button class="save-button" data-action="save" data-id="3bros" aria-pressed="false" aria-label="Save 3 Bros Take-Out" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Burgers &amp; takeaway</span></p>
         <h3 class="card-title"><a href="/place/3bros/" data-action="open-place" data-id="3bros"><span>3 Bros Take-Out</span></a></h3>
+        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Burgers &amp; takeaway</span></p>
         <p class="card-description">Burgers, wraps and takeaway meals on Scud Hill.</p>
         <div class="card-bottom">
           
@@ -206,8 +208,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/dolphin/" data-action="open-place" data-id="dolphin" aria-label="View place at Dolphin Restaurant" tabindex="-1"><img class="venue-photo" src="/assets/photos/dolphin-venue-20261021-960.webp" srcset="/assets/photos/dolphin-venue-20261021-480.webp 480w, /assets/photos/dolphin-venue-20261021-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="The sea view from the Dolphin Restaurant’s terrace at Camp Bay." width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"><span class="image-notice">Customer photo · Tripadvisor</span></a>
         <button class="save-button" data-action="save" data-id="dolphin" aria-pressed="false" aria-label="Save Dolphin Restaurant" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Spanish &amp; seafood</span></p>
         <h3 class="card-title"><a href="/place/dolphin/" data-action="open-place" data-id="dolphin"><span>Dolphin Restaurant</span></a></h3>
+        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>Spanish &amp; seafood</span></p>
         <p class="card-description">Beachside restaurant dishes and seafood at Camp Bay.</p>
         <div class="card-bottom">
           <span class="card-hours" data-status="" title="Based on published venue hours in Gibraltar" hidden></span>
@@ -218,8 +220,8 @@
       <div class="card-photo-wrap"><a class="card-photo" href="/place/hall-of-fame/" data-action="open-place" data-id="hall-of-fame" aria-label="View place at Hall of Fame" tabindex="-1"><img class="venue-photo" src="/assets/photos/hall-of-fame-venue-20261021-960.webp" srcset="/assets/photos/hall-of-fame-venue-20261021-480.webp 480w, /assets/photos/hall-of-fame-venue-20261021-960.webp 960w" sizes="(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw" alt="Hall of Fame · customer photograph of the venue’s storefront, seating or interior." width="960" height="540" style="object-position:50% 50%" loading="lazy" decoding="async"><span class="image-notice">Customer photo · Tripadvisor</span></a>
         <button class="save-button" data-action="save" data-id="hall-of-fame" aria-pressed="false" aria-label="Save Hall of Fame" title="Save place"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button></div>
       <div class="card-content">
-        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>European</span></p>
         <h3 class="card-title"><a href="/place/hall-of-fame/" data-action="open-place" data-id="hall-of-fame"><span>Hall of Fame</span></a></h3>
+        <p class="card-subtitle"><span>South District</span><span class="sep" aria-hidden="true"></span><span>European</span></p>
         <p class="card-description">Pub dishes and drinks on Ragged Staff Road.</p>
         <div class="card-bottom">
           
@@ -238,6 +240,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span id="toast-message"></span></div>
 <script src="/assets/data.js?v=20261121-menu-review" defer></script>
 <script src="/assets/hours.js?v=20261121-meals-fluid" defer></script>
-<script src="/assets/app.js?v=20261121-menu-review" defer></script>
+<script src="/assets/app.js?v=20261121-crafted" defer></script>
 </body>
 </html>
