@@ -1235,6 +1235,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:0.125
 .meal-chip.active { background:var(--brand); color:var(--yellow-ink); }
 .meal-chip:focus-visible { outline-offset:2px; }
 .meal-note { margin:-.15rem 0 .75rem; color:var(--muted); font-size:.75rem; line-height:1.5; max-width:65ch; }
+.place-meals { margin:.5rem 0 0; color:var(--ink); font-size:.82rem; font-weight:650; line-height:1.5; }
+.place-menu-note { max-width:64ch; margin:.5rem 0 0; color:var(--muted); font-size:.8rem; line-height:1.55; }
 @media (hover:hover) { .meal-chip:not(.active):hover { background:var(--soft); } }
 
 /* Quiet scroll hints sit in reserved rows, clear of links and photographs. */

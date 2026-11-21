@@ -43,7 +43,7 @@
   let searchTimeout;
   let priorDialogFocus = null;
   const normalise = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’']/g, '').toLocaleLowerCase('en-GB');
-  const searchable = new Map(venues.map(venue=>[venue.id,normalise([venue.name,venue.area,venue.cuisine,venue.description,...(venue.delivery || []).map(link=>(data.deliveryProviders || []).find(provider=>provider.id===link.provider)?.name || link.provider),...venue.tags].join(' '))]));
+  const searchable = new Map(venues.map(venue=>[venue.id,normalise([venue.name,venue.area,venue.cuisine,venue.description,venue.menuNote || '',...(venue.meals || []),...(venue.delivery || []).map(link=>(data.deliveryProviders || []).find(provider=>provider.id===link.provider)?.name || link.provider),...venue.tags].join(' '))]));
 
   function notify(message) {
     clearTimeout(toastTimeout);
@@ -378,6 +378,9 @@
       ...delivery.map(link => ({source:link.source,checkedAt:link.checkedAt,note:provider(link.provider)+' restaurant listing.'}))
     ];
     const menuInOrdering = venue.menuUrl === venue.onlineOrdering?.url || delivery.some(link => link.url === venue.menuUrl);
+    const menuLinks = venue.menuLinks?.length
+      ? venue.menuLinks.map(link => sourceAnchor(link.url, link.label)).join('')
+      : venue.menuUrl ? sourceAnchor(venue.menuUrl, menuInOrdering ? 'Menu · '+(delivery.find(link => link.url === venue.menuUrl) ? provider(delivery.find(link => link.url === venue.menuUrl).provider) : 'live ordering') : 'Menu') : '';
     const siteLinks = [
       venue.website ? sourceAnchor(venue.website,'Website') : '',
       venue.tripadvisor ? sourceAnchor(venue.tripadvisor,'Tripadvisor reviews') : '',
@@ -419,10 +422,12 @@
             <p class="dialog-kicker"><a href="/area/${slugForArea(venue.area)}/" data-action="area" data-area="${e(venue.area)}">${e(venue.area)}</a> · ${e(venue.cuisineDetail || venue.cuisine)}</p>
             <h1 id="place-title"><span class="marker-word">${e(venue.name)}</span></h1>
             <p class="dialog-description">${e(venue.description)}</p>
+            ${venue.meals?.length ? `<p class="place-meals" aria-label="Meal suggestions">${venue.meals.map(meal => e(meal[0].toUpperCase()+meal.slice(1))).join(' · ')}</p>` : ''}
             <nav class="place-quick-links" aria-label="Restaurant links">
-              ${venue.menuUrl && !menuInOrdering ? sourceAnchor(venue.menuUrl,'Menu') : ''}
+              ${menuLinks}
               ${sourceAnchor(googleMapsLink(venue),'Get directions')}
             </nav>
+            ${venue.menuNote ? `<p class="place-menu-note">${e(venue.menuNote)}</p>` : ''}
           </div>
         </header>
         <div class="place-layout">
@@ -444,7 +449,7 @@
           ${siteLinks ? `<nav class="place-quick-links" aria-label="Restaurant websites">${siteLinks}</nav>` : ''}
           <details class="source-details">
             <summary>Sources &amp; listing checks</summary>
-            <p>Restaurant details checked ${e(venue.checkedAt || data.checkedAt)}. Delivery listings checked ${e(venue.deliveryCheckedAt || data.deliveryCheckedAt)}. ${delivery.length ? 'Confirm availability with the delivery app.' : 'No delivery app listing verified.'}</p>
+            <p>${venue.menuCheckedAt ? `Menus &amp; meal suggestions checked ${e(venue.menuCheckedAt)}. ` : ''}Other restaurant details last checked ${e(venue.checkedAt || data.checkedAt)}. ${delivery.length ? 'Confirm delivery availability with the app; individual source dates are below.' : 'No delivery app listing verified.'}</p>
             ${(venue.auditIssues || []).length ? `<ul>${venue.auditIssues.map(issue => `<li>${e(issue)}</li>`).join('')}</ul>` : ''}
             ${sources.map(check => `<p>${check.linkStatus === 'unrelated-redirect' ? e('Former website withheld: '+check.source) : sourceAnchor(check.source,'Source · '+check.checkedAt)}${check.note ? `<small>${e(check.note)}</small>` : ''}</p>`).join('')}
             ${venue.image ? `<p>${sourceAnchor(venue.imageSource,venue.imageCredit)}<small>${e(venue.imageRightsStatus || '')}</small></p>` : ''}
@@ -690,7 +695,8 @@
       const entity={'@type':'Restaurant','@id':meta.url+'#restaurant',name:venue.name,url:venue.website || meta.url,mainEntityOfPage:{'@id':meta.url+'#webpage'},description:venue.description,image:{'@id':photoId},address:{'@type':'PostalAddress',streetAddress:street,addressLocality:'Gibraltar',addressCountry:'GI',...(/GX11\s*1AA/i.test(venue.address)?{postalCode:'GX11 1AA'}:{})},servesCuisine:venue.cuisine,sameAs:['website','tripadvisor','instagram','facebook'].map(key=>venue[key]).filter(Boolean)};
       if(venue.phoneHref) entity.telephone=venue.phoneHref;
       if(venue.email) entity.email=venue.email;
-      if(venue.menuUrl) { entity.hasMenu=venue.menuUrl; entity.menu=venue.menuUrl; }
+      if(venue.menuLinks?.length) { entity.hasMenu=venue.menuLinks.map(link=>({'@type':'Menu',name:link.label,url:link.url})); }
+      else if(venue.menuUrl) entity.hasMenu=venue.menuUrl;
       // Null days are unknown. Only reviewed intervals and explicitly closed days are emitted.
       if(venue.openingHours) {
         const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
