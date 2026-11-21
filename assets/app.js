@@ -95,7 +95,11 @@
       playMotion(card, [{transform:`translate(${dx}px, ${dy}px)`},{transform:'none'}]);
     });
   }
-  const cardCache = new Map();
+  const cardCache = new Map($$('.restaurant-card',grid).map(node=>{
+    const rect=node.getBoundingClientRect();
+    if(rect.top<innerHeight && rect.bottom>0) node.dataset.arrived='true';
+    return [node.dataset.venue,node];
+  }));
   const cardObserver = 'IntersectionObserver' in window ? new IntersectionObserver(entries => {
     entries.forEach(({target,isIntersecting}) => {
       if (!isIntersecting) return;
@@ -275,7 +279,7 @@
       button.classList.toggle('active', selected);
       if (selected) button.setAttribute('aria-current','page'); else button.removeAttribute('aria-current');
     });
-    $$('[data-action="area"]').forEach(button => { const selected = button.dataset.area === state.area; button.classList.toggle('active',selected); button.setAttribute('aria-pressed',String(selected)); });
+    $$('[data-action="area"]').forEach(button => { const selected = button.dataset.area === state.area; button.classList.toggle('active',selected); if(selected) button.setAttribute('aria-current','page'); else button.removeAttribute('aria-current'); });
     $$('[data-action="collection"]').forEach(button => { const active = button.dataset.collection === state.collection; button.setAttribute('aria-pressed',String(active)); button.classList.toggle('active',active); });
     $('#cuisine-select').value = state.cuisine;
     $$('[data-action="layout"]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.layout === state.layout)));
@@ -292,9 +296,9 @@
     $('#filter-dot').hidden = state.area === 'all' && state.cuisine === 'all' && state.collection === 'all' && !state.online && state.delivery === 'all' && state.sort === 'directory';
     $('#breadcrumb-page').textContent = state.view === 'saved' ? 'Saved places' : 'Explore';
     const pageTitle = $('#page-title');
-    if (pageTitle.dataset.view !== state.view) {
-      pageTitle.dataset.view = state.view;
-      pageTitle.innerHTML = state.view === 'saved' ? 'Your <span class="marker-word">saved places</span>' : 'Where to <span class="marker-word">eat</span>';
+    if (pageTitle.dataset.view !== `${state.view}:${state.area}`) {
+      pageTitle.dataset.view = `${state.view}:${state.area}`;
+      pageTitle.innerHTML = state.view === 'saved' ? 'Your <span class="marker-word">saved places</span>' : state.area !== 'all' ? `<span class="marker-word">${escapeHTML(state.area)}</span>` : 'Where to <span class="marker-word">eat</span>';
     }
     syncSaved();
   }
@@ -327,11 +331,15 @@
     clearTimeout(searchTimeout);
     state.query = ''; state.area = 'all'; state.cuisine = 'all'; state.collection = 'all'; state.meal = 'all'; state.online = false; state.openNow = false; state.delivery = 'all'; state.sort = 'directory';
     $('#search-input').value = '';
+    if(/^\/area\//.test(location.pathname)) history.pushState(null,'','/');
+    updateMetadata(null,null);
     render();
   }
   function setView(view) {
     state.view = view === 'saved' ? 'saved' : 'explore';
     resetFilters();
+    if(/^\/area\//.test(location.pathname)) history.pushState(null,'','/');
+    updateMetadata(null,null);
     // A navigation change starts at the top on every screen size.
     // Avoid a long animated trip through the previous results.
     window.scrollTo({top:0,behavior:'instant'});
@@ -419,7 +427,7 @@
     const nearby = venues.filter(other => other.id !== venue.id && other.area === venue.area).slice(0,2);
     return `
       <div class="dialog-top-actions">
-        <button class="place-back" data-action="close-place" autofocus>${icon('arrow')}<span>Back to places</span></button>
+        <a class="place-back" href="/" data-action="close-place" autofocus>${icon('arrow')}<span>Back to places</span></a>
         <span class="dialog-current-name" aria-hidden="true">${e(venue.name)}</span>
         <button class="icon-button" data-action="share-place" aria-label="Copy link to ${e(venue.name)}" title="Copy place link">${icon('link')}</button>
         <button class="icon-button" data-action="save" data-id="${e(venue.id)}" aria-pressed="${state.saved.has(venue.id)}" aria-label="Save ${e(venue.name)}">${icon('bookmark')}</button>
@@ -428,8 +436,8 @@
         <header class="place-hero">
           <div class="dialog-photo">${coverHTML(venue,0,true)}</div>
           <div class="place-heading">
-            <p class="dialog-kicker">${e(venue.area)} · ${e(venue.cuisineDetail || venue.cuisine)}</p>
-            <h2 id="place-title"><span class="marker-word">${e(venue.name)}</span></h2>
+            <p class="dialog-kicker"><a href="/area/${slugForArea(venue.area)}/" data-action="area" data-area="${e(venue.area)}">${e(venue.area)}</a> · ${e(venue.cuisineDetail || venue.cuisine)}</p>
+            <h1 id="place-title"><span class="marker-word">${e(venue.name)}</span></h1>
             <p class="dialog-description">${e(venue.description)}</p>
             ${tags.length ? `<p class="place-tags">${e(tags.join(' · '))}</p>` : ''}
             <nav class="place-quick-links" aria-label="Restaurant links">
@@ -451,7 +459,7 @@
           ${hasDirectOrder ? visit : ordering}
         </div>
         ${nearby.length ? `<section class="detail-section nearby-section"><h3>More in ${e(venue.area)}</h3>
-          ${nearby.map(other => `<button class="similar-place" data-action="open-place" data-id="${e(other.id)}"><span>${e(other.name)}<small> · ${e(other.cuisine)}</small></span>${icon('arrow')}</button>`).join('')}
+          ${nearby.map(other => `<a class="similar-place" href="/place/${e(other.id)}/" data-action="open-place" data-id="${e(other.id)}"><span>${e(other.name)}<small> · ${e(other.cuisine)}</small></span>${icon('arrow')}</a>`).join('')}
         </section>` : ''}
         <footer class="place-footer">
           ${siteLinks ? `<nav class="place-quick-links" aria-label="Restaurant websites">${siteLinks}</nav>` : ''}
@@ -475,13 +483,17 @@
   function showPlace(id, changeHash = true) {
     const venue = byId.get(id); if (!venue) return;
     if (infoDialog.open) infoDialog.close();
-    const replacing = placeDialog.open;
+    const prerendered=placeDialog.dataset.prerendered===id;
+    const replacing = placeDialog.open && !prerendered;
+    if(prerendered) { placeDialog.dataset.initial='true'; placeDialog.close(); delete placeDialog.dataset.prerendered; }
+    else delete placeDialog.dataset.initial;
     cancelDialogClose(placeDialog);
     if (!replacing) { priorDialogFocus = document.activeElement; dialogFocus.set(placeDialog,priorDialogFocus); }
     currentVenue = venue;
-    placeDialog.innerHTML = venueDialogHTML(venue);
+    if(!prerendered) placeDialog.innerHTML = venueDialogHTML(venue);
     prepareDisclosures(placeDialog);
     if (!placeDialog.open) placeDialog.showModal();
+    delete document.documentElement.dataset.initialPlace;
     syncScrollLock();
     placeDialog.classList.remove('is-scrolled');
     const scroller = placeDialog.querySelector('.dialog-scroll');
@@ -531,7 +543,7 @@
     // A queued native close event must not clear a newly reopened dialog.
     if (dialog.open) return;
     cancelDialogClose(dialog);
-    if (dialog === placeDialog) { currentVenue = null; updateMetadata(null); }
+    if (dialog === placeDialog) { currentVenue = null; if(!grid.children.length) render(); updateMetadata(null); }
     syncScrollLock();
     const focus = dialogFocus.get(dialog);
     const topDialog = [...document.querySelectorAll('dialog[open]')].at(-1);
@@ -655,21 +667,94 @@
     });
   }
   let routeClosing = false;
-  function updateMetadata(venue) {
-    const title = venue ? `${venue.name} · Gib .today` : 'Gib .today · Places to eat in Gibraltar';
-    const description = venue?.description || 'Find somewhere good in Gibraltar. Restaurants, menus, delivery apps and ways to book.';
-    document.title = title;
-    $('meta[name="description"]').content = description;
-    $('meta[property="og:title"]').content = title;
-    $('meta[property="og:description"]').content = description;
-    const url = `https://gib.today${venue ? `/place/${venue.id}/` : '/'}`;
-    $('link[rel="canonical"]').href = url; $('meta[property="og:url"]').content = url;
+  function slugForArea(area) { return normalise(area).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+  function pageMetadata(venue = null, area = null) {
+    const origin = 'https://gib.today';
+    const count = area ? venues.filter(item=>item.area===area).length : venues.length;
+    const route = venue ? `/place/${venue.id}/` : area ? `/area/${slugForArea(area)}/` : '/';
+    const title = venue
+      ? `${venue.name} in Gibraltar · ${venue.reservationUrl ? 'Menu & booking' : (venue.delivery || []).length ? 'Menu & delivery' : 'Menu & contact'} | Gib .today`
+      : area ? `${area} restaurants, Gibraltar | Gib .today` : 'Restaurants in Gibraltar · Menus & delivery | Gib .today';
+    const full = venue ? `${venue.name} in ${venue.area}, Gibraltar. ${venue.shortDescription || venue.description}` : area
+      ? `Find ${count} restaurants and cafés in ${area}, Gibraltar. Compare menus, booking links, published opening hours and local delivery options.`
+      : `Explore ${count} restaurants and cafés in Gibraltar. Find menus, booking links, verified opening hours and delivery on HungryMonkey, RockHero and NomNom’s.`;
+    const description = full.length > 160 ? full.slice(0,157).replace(/\s+\S*$/,'')+'…' : full;
+    const image = `${origin}/assets/social/${venue ? venue.id : area ? 'area-'+slugForArea(area) : 'home'}-20261121.jpg`;
+    const alt = venue ? `${venue.name} in ${venue.area}, Gibraltar. ${venue.imageAlt || venue.cuisine}` : area ? `Places to eat in ${area}, Gibraltar` : 'Gib .today — restaurants, menus and delivery in Gibraltar';
+    return {title,description,url:origin+route,image,alt,width:1200,height:630};
+  }
+  function structuredData(venue = null, area = null) {
+    const origin='https://gib.today', meta=pageMetadata(venue,area);
+    const absolute=value=>new URL(value,origin).href;
+    const graph=[
+      {'@type':'Organization','@id':origin+'/#publisher',name:'Gib .today',url:origin+'/',logo:{'@type':'ImageObject',url:origin+'/assets/icon-512.png',width:512,height:512}},
+      {'@type':'WebSite','@id':origin+'/#website',url:origin+'/',name:'Gib .today',alternateName:'gib.today',inLanguage:'en-GB',publisher:{'@id':origin+'/#publisher'}},
+      {'@type':'ImageObject','@id':meta.url+'#primary-image',url:meta.image,contentUrl:meta.image,width:1200,height:630,caption:meta.alt,...(venue?.imageCredit?{creditText:venue.imageCredit,isBasedOn:absolute(venue.image)}:{})},
+      {'@type':venue?'WebPage':'CollectionPage','@id':meta.url+'#webpage',url:meta.url,name:meta.title,description:meta.description,inLanguage:'en-GB',isPartOf:{'@id':origin+'/#website'},publisher:{'@id':origin+'/#publisher'},primaryImageOfPage:{'@id':meta.url+'#primary-image'},...(venue||area?{breadcrumb:{'@id':meta.url+'#breadcrumb'}}:{}),mainEntity:{'@id':meta.url+(venue?'#restaurant':'#places')}}
+    ];
+    const crumbs=[{name:'Restaurants in Gibraltar',item:origin+'/'}];
+    const neighbourhood=venue?.area || area;
+    if(neighbourhood) crumbs.push({name:neighbourhood,item:origin+'/area/'+slugForArea(neighbourhood)+'/'});
+    if(venue) crumbs.push({name:venue.name,item:meta.url});
+    if(crumbs.length>1) graph.push({'@type':'BreadcrumbList','@id':meta.url+'#breadcrumb',itemListElement:crumbs.map((item,index)=>({'@type':'ListItem',position:index+1,...item}))});
+    if(venue) {
+      const street=venue.address.replace(/,?\s*Gibraltar\s*(?:GX11\s*1AA)?\s*$/i,'').trim();
+      const entity={'@type':'Restaurant','@id':meta.url+'#restaurant',name:venue.name,url:venue.website || meta.url,mainEntityOfPage:{'@id':meta.url+'#webpage'},description:venue.description,image:[absolute(venue.image),meta.image],address:{'@type':'PostalAddress',streetAddress:street,addressLocality:'Gibraltar',addressCountry:'GI',...(/GX11\s*1AA/i.test(venue.address)?{postalCode:'GX11 1AA'}:{})},servesCuisine:venue.cuisine,sameAs:['website','tripadvisor','instagram','facebook'].map(key=>venue[key]).filter(Boolean)};
+      if(venue.phoneHref) entity.telephone=venue.phoneHref;
+      if(venue.email) entity.email=venue.email;
+      if(venue.menuUrl) { entity.hasMenu=venue.menuUrl; entity.menu=venue.menuUrl; }
+      // Null days are unknown. Only reviewed intervals and explicitly closed days are emitted.
+      if(venue.openingHours) {
+        const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+        const clock=minutes=>`${String(Math.floor((minutes%1440)/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`;
+        const specifications=[];
+        venue.openingHours.week.forEach((ranges,index)=>{
+          if(ranges===null) return;
+          if(!ranges.length) specifications.push({'@type':'OpeningHoursSpecification',dayOfWeek:'https://schema.org/'+days[index],opens:'00:00',closes:'00:00'});
+          else ranges.forEach(([start,end])=>specifications.push({'@type':'OpeningHoursSpecification',dayOfWeek:'https://schema.org/'+days[index],opens:clock(start),closes:start===0&&end===1440?'23:59':clock(end)}));
+        });
+        if(specifications.length) entity.openingHoursSpecification=specifications;
+      }
+      graph.push(entity);
+    } else {
+      const matches=area?venues.filter(item=>item.area===area):venues;
+      graph.push({'@type':'ItemList','@id':meta.url+'#places',name:area?`Restaurants in ${area}, Gibraltar`:'Restaurants in Gibraltar',numberOfItems:matches.length,itemListElement:matches.map((item,index)=>({'@type':'ListItem',position:index+1,name:item.name,url:origin+`/place/${item.id}/`}))});
+    }
+    return {'@context':'https://schema.org','@graph':graph};
+  }
+  function updateMetadata(venue, area = state.area === 'all' ? null : state.area) {
+    const meta=pageMetadata(venue,venue?null:area);
+    document.title=meta.title;
+    $('meta[name="description"]').content=meta.description;
+    for(const [key,value] of Object.entries({'og:title':meta.title,'og:description':meta.description,'og:url':meta.url,'og:image':meta.image,'og:image:secure_url':meta.image,'og:image:alt':meta.alt})) {
+      const tag=$(`meta[property="${key}"]`); if(tag) tag.content=value;
+    }
+    for(const [key,value] of Object.entries({'twitter:title':meta.title,'twitter:description':meta.description,'twitter:image':meta.image,'twitter:image:alt':meta.alt})) {
+      const tag=$(`meta[name="${key}"]`); if(tag) tag.content=value;
+    }
+    $('link[rel="canonical"]').href=meta.url;
+    const image=$('link[rel="image_src"]'); if(image) image.href=meta.image;
+    const schema=$('#page-schema'); if(schema) schema.textContent=JSON.stringify(structuredData(venue,venue?null:area));
+  }
+  function navigateArea(area, push=true) {
+    state.view='explore'; state.area=area;
+    if(placeDialog.open) placeDialog.close();
+    currentVenue=null;
+    const url=area==='all'?'/':`/area/${slugForArea(area)}/`;
+    if(push && location.pathname!==url) history.pushState(null,'',url);
+    animateUpdate(render); updateMetadata(null);
+    window.scrollTo({top:0,behavior:'instant'});
   }
   function handleHash() {
     const match = location.pathname.match(/^\/place\/([a-z0-9-]+)\/?$/) || location.hash.match(/^#place\/([a-z0-9-]+)$/);
     if (contactDialog.open) contactDialog.close();
     if (match && byId.has(match[1])) showPlace(match[1],false);
-    else if (placeDialog.open) { routeClosing=true; closeDialog(placeDialog); routeClosing=false; }
+    else {
+      const areaMatch=location.pathname.match(/^\/area\/([a-z0-9-]+)\/?$/);
+      const area=areaMatch ? data.areas.find(item=>slugForArea(item)===areaMatch[1]) : null;
+      if(placeDialog.open) { routeClosing=true; closeDialog(placeDialog); routeClosing=false; }
+      state.area=area || 'all'; render(); updateMetadata(null);
+    }
   }
   const contactDialog = document.createElement('dialog');
   contactDialog.className = 'contact-dialog';
@@ -805,7 +890,9 @@
     switch (action) {
       case 'home': animateUpdate(()=>setView('explore')); break;
       case 'view': animateUpdate(()=>setView(button.dataset.view)); break;
-      case 'area': animateUpdate(()=>{ state.view = 'explore'; state.area = button.dataset.area; render(); }); break;
+      case 'area':
+        if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||event.button>0) break;
+        event.preventDefault(); navigateArea(button.dataset.area); break;
       case 'collection': animateUpdate(()=>{ state.collection = state.collection === button.dataset.collection ? 'all' : button.dataset.collection; render(); }); break;
       case 'clear-collection': state.collection='all'; animateUpdate(render); break;
       case 'layout':
@@ -817,7 +904,7 @@
       case 'open-place':
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button > 0) break;
         event.preventDefault(); showPlace(button.dataset.id); break;
-      case 'close-place': closeDialog(placeDialog); break;
+      case 'close-place': event.preventDefault(); closeDialog(placeDialog); break;
       case 'close-info': closeDialog(infoDialog); break;
       case 'info': showInfo(button.dataset.page); break;
       case 'theme': setTheme(button); break;
@@ -825,7 +912,7 @@
       case 'clear-search': clearTimeout(searchTimeout); state.query = ''; $('#search-input').value=''; animateUpdate(render); $('#search-input').focus(); break;
       case 'reset-filters': animateUpdate(resetFilters); break;
       case 'clear-cuisine': state.cuisine='all'; animateUpdate(render); break;
-      case 'clear-area': state.area='all'; animateUpdate(render); break;
+      case 'clear-area': navigateArea('all'); break;
       case 'meal': state.meal=button.dataset.meal; animateUpdate(render); break;
       case 'scroll-more': {
         const target = button.dataset.scroll === 'areas' ? $('.areas') : $('.dialog-scroll',placeDialog);
@@ -853,7 +940,7 @@
     }
   });
   $('#search-input').addEventListener('input',event => { state.query = event.target.value; clearTimeout(searchTimeout); searchTimeout = setTimeout(()=>animateUpdate(render),65); });
-  $('#area-select').addEventListener('change',event => { state.area=event.target.value; animateUpdate(render); });
+  $('#area-select').addEventListener('change',event => navigateArea(event.target.value));
   $('#cuisine-select').addEventListener('change',event => { state.cuisine=event.target.value; animateUpdate(render); });
   $('#online-only').addEventListener('change',event => { state.online=event.target.checked; animateUpdate(render); });
   $('#sort-select').addEventListener('change',event=>{ state.sort=event.target.value; animateUpdate(render); });
@@ -913,6 +1000,9 @@
   document.addEventListener('scroll',scheduleScrollHints,{passive:true,capture:true});
   window.addEventListener('resize',scheduleScrollHints,{passive:true});
   [$('.sidebar-section'),placeDialog].forEach(element => scrollHintObserver?.observe(element));
-  animateUpdate(render); syncTheme(); handleHash();
+  const initialArea=location.pathname.match(/^\/area\/([a-z0-9-]+)\/?$/);
+  if(initialArea) state.area=data.areas.find(item=>slugForArea(item)===initialArea[1]) || 'all';
+  if(placeDialog.dataset.prerendered) syncControls(); else animateUpdate(render);
+  syncTheme(); handleHash();
 })();
 

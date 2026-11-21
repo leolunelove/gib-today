@@ -1273,3 +1273,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:0.125
 @media (pointer:coarse) { .save-button,.icon-button,.mobile-theme,.place-back,.availability-toggle,.delivery-chip { min-width:44px; min-height:44px; } }
 
 @media (pointer:coarse) { .sidebar-section { padding-bottom:2.75rem; } .place-dialog { --scroll-hint-row:2.75rem; } .scroll-cue { min-height:44px; } }
+
+/* Direct links have their complete content before progressive enhancement. */
+html[data-initial-place] :is(.sidebar,.app,.mobile-nav) { visibility:hidden; }
+.place-dialog[data-prerendered],.place-dialog[data-initial] { animation:none; }
+.dialog-kicker a:hover { text-decoration:underline; text-decoration-color:var(--brand); text-underline-offset:.15em; }
