@@ -35,9 +35,9 @@
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const checkedDate = new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(`${data.checkedAt}T12:00:00Z`));
   let currentVenue = null;
-  const dialogClosers = new Map();
+  const dialogMotion = new WeakMap();
   const dialogFocus = new WeakMap();
-  const motion = { quick: 160, move: 320, enter: 360, exit: 200, ease: 'cubic-bezier(.22,1,.36,1)' };
+  const motion = { quick: 130, move: 230, enter: 190, exit: 140, ease: 'cubic-bezier(.22,1,.36,1)' };
   const runningMotion = new Set();
   let toastTimeout;
   let searchTimeout;
@@ -68,53 +68,40 @@
   reducedMotion.addEventListener('change', () => {
     if (reducedMotion.matches) runningMotion.forEach(animation => animation.finish());
   });
+  const cardCache = new Map($$('.restaurant-card',grid).map(card => [card.dataset.venue, card]));
+  const cardMotion = new WeakMap();
   function animateUpdate(update) {
-    // Retain cards and images. Read all positions before writing animation styles.
+    if (reducedMotion.matches) { update(); return; }
     const previous = new Map();
-    if (!reducedMotion.matches) $$('.restaurant-card', grid).forEach(card => {
+    const cards = $$('.restaurant-card', grid);
+    // Capture live positions first so rapid changes continue from the current frame.
+    for (const card of cards) {
       const rect = card.getBoundingClientRect();
-      if (rect.bottom > 0 && rect.top < innerHeight) previous.set(card.dataset.venue, rect);
-      card.getAnimations().forEach(animation => animation.cancel());
-    });
+      if (rect.bottom > 0 && rect.top < innerHeight) previous.set(card, rect);
+    }
+    for (const card of cards) cardMotion.get(card)?.cancel();
     update();
-    if (reducedMotion.matches) return;
-    const visible = $$('.restaurant-card', grid).map(card => [card, card.getBoundingClientRect()])
+    const visible = $$('.restaurant-card',grid).map(card => [card, card.getBoundingClientRect()])
       .filter(([,rect]) => rect.bottom > 0 && rect.top < innerHeight);
-    visible.forEach(([card, after], index) => {
-      const before = previous.get(card.dataset.venue);
+    for (const [card, rect] of visible) {
+      const before = previous.get(card);
       if (!before) {
-        card.dataset.arrived = 'true';
-        playMotion(card, [{opacity:0, transform:'translateY(12px)'},{opacity:1, transform:'none'}],
-          {duration:motion.enter, delay:Math.min(index,5)*24, fill:'backwards'});
-        return;
+        cardMotion.set(card, playMotion(card, [{opacity:.65}, {opacity:1}], {duration:motion.quick}));
+        continue;
       }
-      const dx = Math.round(before.left-after.left), dy = Math.round(before.top-after.top);
-      // Distant sort results settle locally instead of flying through the page.
-      if (Math.abs(dx)+Math.abs(dy)<2) return;
-      if (Math.abs(dy)>innerHeight*.7) return;
-      playMotion(card, [{transform:`translate(${dx}px, ${dy}px)`},{transform:'none'}]);
-    });
+      const x = Math.round(before.left - rect.left);
+      const y = Math.round(before.top - rect.top);
+      const distance = Math.hypot(x,y);
+      if (distance < 2 || distance > innerHeight * .5) continue;
+      cardMotion.set(card, playMotion(card, [{transform:`translate(${x}px, ${y}px)`}, {transform:'none'}]));
+    }
   }
-  const cardCache = new Map($$('.restaurant-card',grid).map(node=>{
-    const rect=node.getBoundingClientRect();
-    if(rect.top<innerHeight && rect.bottom>0) node.dataset.arrived='true';
-    return [node.dataset.venue,node];
-  }));
-  const cardObserver = 'IntersectionObserver' in window ? new IntersectionObserver(entries => {
-    entries.forEach(({target,isIntersecting}) => {
-      if (!isIntersecting) return;
-      cardObserver.unobserve(target);
-      if (target.dataset.arrived) return;
-      target.dataset.arrived = 'true';
-      playMotion(target,[{opacity:0,transform:'translateY(10px)'},{opacity:1,transform:'none'}],{duration:motion.enter});
-    });
-  },{threshold:.01,rootMargin:'0px 0px 48px 0px'}) : null;
   function renderCards(matches) {
     const focused = document.activeElement;
     const focusedCard = focused?.closest('.restaurant-card');
     const oldIndex = focusedCard ? [...grid.children].indexOf(focusedCard) : -1;
     const wanted = new Set(matches.map(venue => venue.id));
-    [...grid.children].forEach(child => { if (!wanted.has(child.dataset.venue)) { cardObserver?.unobserve(child); child.remove(); } });
+    [...grid.children].forEach(child => { if (!wanted.has(child.dataset.venue)) child.remove(); });
     if (!matches.length) { grid.innerHTML = emptyState(); }
     else matches.forEach((venue, index) => {
       let node = cardCache.get(venue.id);
@@ -127,7 +114,6 @@
       syncCardHours(node, venue.id);
       const current = grid.children[index];
       if (current !== node) grid.insertBefore(node,current || null);
-      if (!node.dataset.arrived) cardObserver?.observe(node);
     });
     if (focusedCard && !document.contains(focused)) {
       const next = grid.children[Math.min(oldIndex,grid.children.length-1)];
@@ -200,7 +186,7 @@
     if (!opening && panel.contains(document.activeElement)) toggle.focus({preventScroll:true});
     const fullHeight = panel.getBoundingClientRect().height;
     const styles = getComputedStyle(panel);
-    const expanded = {height:fullHeight+'px',opacity:1,paddingTop:styles.paddingTop,paddingBottom:styles.paddingBottom,marginBottom:styles.marginBottom,borderTopWidth:'1px',borderBottomWidth:'1px'};
+    const expanded = {height:fullHeight+'px',opacity:1,paddingTop:styles.paddingTop,paddingBottom:styles.paddingBottom,marginBottom:styles.marginBottom,borderTopWidth:styles.borderTopWidth,borderBottomWidth:styles.borderBottomWidth};
     const collapsed = {height:'0px',opacity:0,paddingTop:'0px',paddingBottom:'0px',marginBottom:'0px',borderTopWidth:'0px',borderBottomWidth:'0px'};
     panel.classList.add('is-animating');
     filterMotion = playMotion(panel,[startFrame || collapsed,opening?expanded:collapsed],{duration:opening?motion.move:motion.exit});
@@ -220,7 +206,7 @@
   function coverHTML(venue, index = 0, detail = false) {
     const e = escapeHTML;
     if (venue.image) {
-      return `<img class="venue-photo" src="${e(venue.image)}" srcset="${e(venue.imageSrcSet || '')}" sizes="${detail ? '(max-width: 560px) 100vw, 560px' : '(max-width: 560px) 100vw, (max-width: 1100px) 45vw, 30vw'}" alt="${e(venue.imageAlt || venue.name)}" width="${venue.imageWidth || 960}" height="${venue.imageHeight || 640}" style="object-position:${e(venue.imagePosition || '50% 50%')}" loading="${detail || index < 3 ? 'eager' : 'lazy'}" decoding="async">${venue.imageNotice ? `<span class="image-notice">${e(venue.imageNotice)}</span>` : ''}`;
+      return `<img class="venue-photo" src="${e(venue.image)}" srcset="${e(venue.imageSrcSet || '')}" sizes="${detail ? '(max-width: 700px) 100vw, (max-width: 1150px) 46vw, 520px' : '(max-width: 624px) 100vw, (max-width: 880px) 48vw, (max-width: 1200px) 40vw, 26vw'}" alt="${e(venue.imageAlt || venue.name)}" width="${venue.imageWidth || 960}" height="${venue.imageHeight || 640}" style="object-position:${e(venue.imagePosition || '50% 50%')}" loading="${detail || index < 3 ? 'eager' : 'lazy'}" decoding="async"${detail || index === 0 ? ' fetchpriority="high"' : ''}>${venue.imageNotice ? `<span class="image-notice">${e(venue.imageNotice)}</span>` : ''}`;
     }
     const number = String(venues.findIndex(item=>item.id===venue.id)+1).padStart(2,'0');
     return `<div class="editorial-cover" data-tone="${e(venue.coverTone || 'stone')}" aria-hidden="true"><span class="cover-kicker"><span>${e(venue.cuisine)}</span><span class="cover-number">Nº ${number}</span></span><span class="cover-title">${(venue.coverLines || [venue.name]).map(line=>`<span>${e(line)}</span>`).join('')}</span><svg class="cover-landscape" viewBox="0 0 400 180" fill="none"><path d="M0 145h400M0 159h400M0 173h400" stroke="currentColor"/><path d="M130 145l36-23 23-35 27-17 13-24 29-6 16 27 12 8 20 37 38 33Z" fill="currentColor"/><path d="M229 46l-13 24-27 17-23 35-36 23m128-105-8 35-21 26-6 44" stroke="var(--cover-bg)" stroke-width="2"/></svg><span class="cover-footer"><span>${e(venue.area)}</span><span>Explore ↗</span></span></div>`;
@@ -230,7 +216,7 @@
     if (venue.tradingStatus === 'unconfirmed') return 'Check trading status';
     if (venue.reservationPolicy === 'walk-in') return 'Walk in';
     if (venue.reservationUrl) return 'Online booking';
-    if (venue.phone) return venue.bookingMethod === 'call-reserve' ? 'Call to reserve' : 'Call for enquiries';
+    if (venue.phone) return venue.bookingMethod === 'call-reserve' ? 'Call to reserve' : 'Call venue';
     if (venue.email) return 'Email an enquiry';
     return 'Ask the venue';
   }
@@ -246,7 +232,7 @@
         <button class="save-button" data-action="save" data-id="${e(venue.id)}" aria-pressed="${saved}" aria-label="${saved ? 'Unsave' : 'Save'} ${e(venue.name)}" title="${saved ? 'Remove from saved places' : 'Save place'}">${icon('bookmark')}</button></div>
       <div class="card-content">
         <p class="card-subtitle"><span>${e(venue.area)}</span><span class="sep" aria-hidden="true"></span><span>${e(venue.cuisine)}</span></p>
-        <h3 class="card-title"><a href="${route}" data-action="open-place" data-id="${e(venue.id)}"><span>${e(venue.name)}</span>${icon('arrow')}</a></h3>
+        <h3 class="card-title"><a href="${route}" data-action="open-place" data-id="${e(venue.id)}"><span>${e(venue.name)}</span></a></h3>
         <p class="card-description">${e(venue.shortDescription || venue.description)}</p>
         <div class="card-bottom">
           ${venue.openingHours ? '<span class="card-hours" data-status="" title="Based on published venue hours in Gibraltar" hidden></span>' : ''}
@@ -290,7 +276,7 @@
     $('#availability-note').hidden = !state.openNow;
     $('#meal-note').hidden = state.meal === 'all';
     $$('[data-action="meal"]').forEach(button => { const active = button.dataset.meal === state.meal; button.setAttribute('aria-pressed',String(active)); button.classList.toggle('active',active); });
-    $$('[data-action="delivery"]').forEach(button => { const active=button.dataset.delivery===state.delivery; button.setAttribute('aria-pressed',String(active)); button.classList.toggle('active',active); });
+    $('#delivery-select').value = state.delivery;
     $('#clear-search').hidden = !state.query;
     $('#search-hint').hidden = Boolean(state.query);
     $('#filter-dot').hidden = state.area === 'all' && state.cuisine === 'all' && state.collection === 'all' && !state.online && state.delivery === 'all' && state.sort === 'directory';
@@ -310,10 +296,8 @@
     grid.classList.toggle('list-mode',state.layout === 'list');
     renderCards(matches);
     const total = $('#result-total');
-    if (total.textContent !== String(matches.length)) { total.textContent = matches.length; playMotion(total,[{transform:'translateY(3px)',opacity:.45},{transform:'none',opacity:1}],{duration:motion.quick}); }
-    const oldHeading = $('#results-heading').textContent;
-    $('#results-heading').textContent = state.area !== 'all' ? state.area : state.collection !== 'all' ? data.collections.find(c=>c.id===state.collection)?.name || 'Collection' : hasSearch || state.cuisine !== 'all' || state.online || state.openNow || state.delivery !== 'all' ? 'Matching places' : state.meal !== 'all' ? `${state.meal[0].toUpperCase()+state.meal.slice(1)} places` : state.view === 'saved' ? 'Bookmarks' : 'All places';
-    if (oldHeading !== $('#results-heading').textContent) playMotion($('#results-heading'),[{opacity:.55},{opacity:1}],{duration:motion.quick});
+    if (total.textContent !== String(matches.length)) total.textContent = matches.length;
+    $('#results-heading').textContent = state.area !== 'all' ? 'Places' : state.collection !== 'all' ? data.collections.find(c=>c.id===state.collection)?.name || 'Collection' : hasSearch || state.cuisine !== 'all' || state.online || state.openNow || state.delivery !== 'all' ? 'Matching places' : state.meal !== 'all' ? `${state.meal[0].toUpperCase()+state.meal.slice(1)} places` : state.view === 'saved' ? 'Bookmarks' : 'All places';
     $('#results-status').textContent = `${matches.length} restaurant${matches.length === 1 ? '' : 's'}${state.openNow ? ' open now' : ''}${state.meal !== 'all' ? ` for ${state.meal}` : ''} ${state.view === 'saved' ? 'in your saved places' : 'in the directory'}${hasSearch ? ` matching “${state.query.trim()}”` : ''}.`;
     const tokens = [];
     if (state.cuisine !== 'all') tokens.push(`<button class="active-token" data-action="clear-cuisine" aria-label="Remove cuisine filter">${escapeHTML(state.cuisine)} ${icon('close')}</button>`);
@@ -344,13 +328,11 @@
     // Avoid a long animated trip through the previous results.
     window.scrollTo({top:0,behavior:'instant'});
   }
-  function toggleSaved(id, button) {
+  function toggleSaved(id) {
     const venue = byId.get(id); if (!venue) return;
     if (state.saved.has(id)) state.saved.delete(id); else state.saved.add(id);
     const persisted = storage.set('saved', JSON.stringify([...state.saved]));
     if (state.view === 'saved') animateUpdate(render); else syncSaved();
-    if (button && document.contains(button)) playMotion($('.icon',button),[{transform:'scale(.75) rotate(-12deg)'},{transform:'scale(1.2) rotate(5deg)',offset:.55},{transform:'none'}],{duration:motion.enter});
-    $$('[data-saved-count]').forEach(count=>playMotion(count,[{transform:'scale(1.3)'},{transform:'none'}],{duration:motion.move}));
     notify(persisted ? (state.saved.has(id) ? `${venue.name} — saved for later.` : `${venue.name} — removed.`) : 'Saved for this visit. Browser storage is unavailable.');
   }
   function safeHistoryHash(hash) {
@@ -376,7 +358,7 @@
         <span><strong>${e(title)}</strong>${detail ? `<small>${e(detail)}</small>` : ''}</span>${icon(ico)}
       </a>`;
     const onlineButton = venue.reservationUrl
-      ? action(venue.reservationUrl, venue.bookingLabel || 'Book a table', 'Official restaurant booking page', !hasDirectOrder, 'table')
+      ? action(venue.reservationUrl, venue.bookingLabel || 'Book a table', 'Official booking link', !hasDirectOrder, 'table')
       : '';
     const phoneButton = venue.phone && !walkIn ? `
       <a class="place-action ${!venue.reservationUrl && !hasDirectOrder ? 'place-action-primary' : ''}" href="tel:${e(venue.phoneHref)}">
@@ -395,8 +377,6 @@
       ...(hasDirectOrder ? [{source:venue.onlineOrdering.source,checkedAt:venue.onlineOrdering.checkedAt,note:'Official direct ordering link.'}] : []),
       ...delivery.map(link => ({source:link.source,checkedAt:link.checkedAt,note:provider(link.provider)+' restaurant listing.'}))
     ];
-    const context = [venue.area, venue.cuisine, venue.cuisineDetail].filter(Boolean).map(normalise);
-    const tags = venue.tags.filter(tag => tag !== 'Delivery apps' && !context.some(label => label.includes(normalise(tag)))).slice(0,4);
     const menuInOrdering = venue.menuUrl === venue.onlineOrdering?.url || delivery.some(link => link.url === venue.menuUrl);
     const siteLinks = [
       venue.website ? sourceAnchor(venue.website,'Website') : '',
@@ -408,7 +388,7 @@
         <h3 id="reserve-title">${walkIn ? 'Walk in' : venue.visitType === 'visit-collection' ? 'Visit & collection' : 'Eat here'}</h3>
         ${walkIn ? '<p class="walkin-note">Walk-ins only, according to the official listing.</p>' : `
           <div class="contact-buttons">${onlineButton}${phoneButton}${venue.whatsapp ? action(venue.whatsapp, 'Message on WhatsApp', '', false, 'message') : ''}${emailButton}</div>`}
-        <p class="reservation-note">${e(venue.reservationNote)}</p>
+        ${venue.reservationNote ? `<details class="booking-notes"><summary>Booking notes</summary><p class="reservation-note">${e(venue.reservationNote)}</p></details>` : ''}
         ${!walkIn && venue.emailBookingAllowed === false && venue.email ? `
           <div class="detail-links">${sourceAnchor('mailto:'+venue.email, 'General enquiries by email')}</div>` : ''}
       </section>`;
@@ -418,7 +398,7 @@
         ${hasDirectOrder ? `<div class="direct-order">${action(venue.onlineOrdering.url, venue.onlineOrdering.label, venue.onlineOrdering.provider, true, 'arrow')}</div>` : ''}
         ${delivery.length ? `
           <div class="delivery-options">${deliveryLinks}</div>
-          <p class="place-fineprint">Check the app for delivery and collection availability.</p>` : ''}
+          <p class="place-fineprint">Availability varies by app.</p>` : ''}
         ${venue.alternateMenus?.length ? `
           <details class="price-detail"><summary>More menus at this address</summary>
             <div class="detail-links">${venue.alternateMenus.map(link => sourceAnchor(link.url, link.name+' · '+provider(link.provider))).join('')}</div>
@@ -439,7 +419,6 @@
             <p class="dialog-kicker"><a href="/area/${slugForArea(venue.area)}/" data-action="area" data-area="${e(venue.area)}">${e(venue.area)}</a> · ${e(venue.cuisineDetail || venue.cuisine)}</p>
             <h1 id="place-title"><span class="marker-word">${e(venue.name)}</span></h1>
             <p class="dialog-description">${e(venue.description)}</p>
-            ${tags.length ? `<p class="place-tags">${e(tags.join(' · '))}</p>` : ''}
             <nav class="place-quick-links" aria-label="Restaurant links">
               ${venue.menuUrl && !menuInOrdering ? sourceAnchor(venue.menuUrl,'Menu') : ''}
               ${sourceAnchor(googleMapsLink(venue),'Get directions')}
@@ -477,7 +456,7 @@
           </div>
         </footer>
       </div></div>
-      <button class="scroll-cue detail-scroll-cue" type="button" data-action="scroll-more" data-scroll="details" aria-label="Scroll to more restaurant details" hidden>More details ${icon('chevron')}</button>
+      <button class="scroll-cue detail-scroll-cue" type="button" data-action="scroll-more" data-scroll="details" aria-label="Scroll to more restaurant details" hidden>Keep scrolling ${icon('chevron')}</button>
       <div class="dialog-toast" role="status" aria-live="polite">${icon('check')}<span class="dialog-toast-message"></span></div>`;
   }
   function showPlace(id, changeHash = true) {
@@ -485,27 +464,31 @@
     if (infoDialog.open) infoDialog.close();
     const prerendered=placeDialog.dataset.prerendered===id;
     const replacing = placeDialog.open && !prerendered;
+    const resuming = replacing && placeDialog.classList.contains('closing');
+    const sameVenue = currentVenue?.id === id;
+    const from = resuming ? dialogFrame(placeDialog) : null;
     if(prerendered) { placeDialog.dataset.initial='true'; placeDialog.close(); delete placeDialog.dataset.prerendered; }
     else delete placeDialog.dataset.initial;
-    cancelDialogClose(placeDialog);
+    if (!replacing || resuming) cancelDialogClose(placeDialog);
     if (!replacing) { priorDialogFocus = document.activeElement; dialogFocus.set(placeDialog,priorDialogFocus); }
     currentVenue = venue;
-    if(!prerendered) placeDialog.innerHTML = venueDialogHTML(venue);
+    if (!prerendered && !sameVenue) placeDialog.innerHTML = venueDialogHTML(venue);
     prepareDisclosures(placeDialog);
-    if (!placeDialog.open) placeDialog.showModal();
+    if (!placeDialog.open) openModal(placeDialog, prerendered);
+    else if (resuming) animateDialog(placeDialog, from, true);
     delete document.documentElement.dataset.initialPlace;
     syncScrollLock();
-    placeDialog.classList.remove('is-scrolled');
-    const scroller = placeDialog.querySelector('.dialog-scroll');
-    scroller.scrollTop = 0;
-    let scrollFrame = 0;
-    scroller.addEventListener('scroll',()=>{
-      if (scrollFrame) return;
-      scrollFrame=requestAnimationFrame(()=>{placeDialog.classList.toggle('is-scrolled',scroller.scrollTop>100);scrollFrame=0;});
-    },{passive:true});
+    if (!sameVenue) {
+      placeDialog.classList.remove('is-scrolled');
+      const scroller = $('.dialog-scroll',placeDialog);
+      scroller.scrollTop = 0;
+      scroller.addEventListener('scroll',scheduleScrollHints,{passive:true});
+      observeDetailScroll();
+    }
     $('[data-action="close-place"]',placeDialog).focus({preventScroll:true});
-    if (replacing) playMotion($('.dialog-content',placeDialog),[{opacity:.25},{opacity:1}]);
-    observeDetailScroll();
+    if (replacing && !sameVenue && !resuming) {
+      playMotion($('.dialog-content',placeDialog),[{opacity:.55},{opacity:1}],{duration:motion.quick});
+    }
     if (changeHash) history[replacing?'replaceState':'pushState']({tablePlace:true},'',`/place/${encodeURIComponent(id)}/`);
     updateMetadata(venue);
     updateMessage();
@@ -515,29 +498,47 @@
     document.documentElement.style.overflow = document.querySelector('dialog[open]') ? 'hidden' : '';
     scheduleScrollHints();
   }
+  function dialogFrame(dialog) {
+    const style = getComputedStyle(dialog);
+    return {opacity:style.opacity, transform:style.transform};
+  }
   function cancelDialogClose(dialog) {
-    const timer = dialogClosers.get(dialog);
-    if (timer) clearTimeout(timer);
-    dialogClosers.delete(dialog);
+    dialogMotion.get(dialog)?.cancel();
+    dialogMotion.delete(dialog);
     dialog.classList.remove('closing');
-    dialog.style.removeProperty('--dialog-exit-opacity');
-    dialog.style.removeProperty('--dialog-exit-transform');
+  }
+  const dialogRest = {opacity:1,transform:'none'};
+  const dialogEdge = {opacity:.55,transform:'translateY(.4rem)'};
+  function animateDialog(dialog, from, opening) {
+    cancelDialogClose(dialog);
+    dialog.classList.toggle('closing',!opening);
+    const animation = playMotion(dialog,[from,opening ? dialogRest : dialogEdge],{
+      duration:opening ? motion.enter : motion.exit,
+      easing:opening ? motion.ease : 'cubic-bezier(.4,0,1,1)',
+      fill:'both'
+    });
+    const finish = () => {
+      dialogMotion.delete(dialog);
+      if (!opening) dialog.close();
+      animation?.cancel();
+      dialog.classList.remove('closing');
+    };
+    if (animation) {
+      dialogMotion.set(dialog,animation);
+      animation.onfinish = finish;
+    } else finish();
+  }
+  function openModal(dialog, immediate=false) {
+    dialog.showModal();
+    if (!immediate) animateDialog(dialog,dialogEdge,true);
   }
   function closeDialog(dialog) {
-    if (!dialog.open || dialogClosers.has(dialog)) return;
+    if (!dialog.open || dialog.classList.contains('closing')) return;
     if (dialog === placeDialog && !routeClosing) {
       if (history.state?.tablePlace) { history.back(); return; }
       history.replaceState(null,'','/'); updateMetadata(null);
     }
-    const appearance = getComputedStyle(dialog);
-    dialog.style.setProperty('--dialog-exit-opacity',appearance.opacity);
-    dialog.style.setProperty('--dialog-exit-transform',appearance.transform);
-    dialog.classList.add('closing');
-    const finish = () => {
-      dialogClosers.delete(dialog); dialog.close(); dialog.classList.remove('closing');
-    };
-    if (reducedMotion.matches) finish();
-    else dialogClosers.set(dialog,setTimeout(finish,motion.exit));
+    animateDialog(dialog,dialogFrame(dialog),false);
   }
   function onDialogClosed(dialog) {
     // A queued native close event must not clear a newly reopened dialog.
@@ -553,7 +554,7 @@
   function infoHTML(page) {
     const sources = page === 'sources';
     const sourceEntries = (sources ? venues : []).map(venue => `<details><summary>${escapeHTML(venue.name)}</summary>${sourceAnchor(venue.contactSource,venue.contactSourceName)}${venue.tripadvisor?sourceAnchor(venue.tripadvisor,'Tripadvisor review listing'):''}<small>${escapeHTML(venue.contactProvenance)}</small></details>`).join('');
-    return `<div class="info-toolbar"><span class="popup-current-name" aria-hidden="true">${sources ? 'About & sources' : 'A little guidance'}</span><button class="icon-button close-info" data-action="close-info" aria-label="Close guide" autofocus>${icon('close')}</button></div><div class="info-content"><div class="info-mark">${icon('table')}</div><h2 id="info-title">${sources ? 'About the <span class="marker-word">directory</span>' : 'Find a <span class="marker-word">place to eat</span>'}</h2>${sources ? `<p class="info-intro">An independent starting point for eating out in Gibraltar. ${venues.length} selected places across ${data.areas.length} neighbourhoods. Not a complete list, and not a paid ranking.</p><h3>What makes it into the directory?</h3><p>A Gibraltar location and current restaurant or delivery-menu evidence, with a published way to contact, order from or visit the business. The selection covers a spread of cuisines, neighbourhoods and meal types. Inclusion is not a quality rating, first-hand review or partnership.</p><h3>Published details, not live availability.</h3><p>Original package check: ${checkedDate}. Individual listings show their latest check date. Some entries still await a fresh full check. Opening hours and availability are not inferred. Tripadvisor scores and review counts stay on Tripadvisor, where you can read the current listing.</p><div class="source-list">${sourceEntries}</div><h3>A note on the photography</h3><p>The directory uses venue images from business websites, delivery menus, official tourism pages and credited venue galleries. Promotional artwork is labelled. Sources are linked on each listing. Some source images are promotional graphics or archival photographs. They do not establish current trading status. Image sources are credited; original photographer and reuse permissions have not been independently confirmed. Editorial covers remain as a fallback if an image cannot load. No generated images are presented as restaurant photographs.</p><h3>Your browser. Your saved places.</h3><p>Saved places, layout and appearance are stored only in this browser. There are no accounts, tracking scripts, booking records or advertising cookies. Clearing browser data removes your saved places. Contact messages are delivered through an email service to the recipient shown. Limited delivery and abuse-prevention records are kept; message bodies are not stored by this directory. External websites have their own privacy practices.</p><button class="button secondary" data-action="theme">${icon('moon')}<span data-theme-label>Switch to dark appearance</span></button>` : `<p class="info-intro">Search by restaurant, neighbourhood or cuisine.</p><div class="steps"><div class="step"><span class="step-number">01</span><div><h3>Browse and save</h3><p>A coffee around the corner. Dinner by the water. Explore by neighbourhood or cuisine, and bookmark the ones that catch your eye.</p></div></div><div class="step"><span class="step-number">02</span><div><h3>See what’s available</h3><p>Open a restaurant for its menu, visit details, direct ordering and verified delivery-app listings. Booking links and walk-in guidance live there too.</p></div></div><div class="step"><span class="step-number">03</span><div><h3>Contact or order</h3><p>Call the restaurant, follow its booking link or open your delivery app. Check today’s hours before heading over. The restaurant or provider confirms your booking or order.</p></div></div></div><div class="info-callout">A little local guide, with no account or booking fee. Restaurants and delivery apps handle availability, orders and reservations directly.</div><button class="text-button" data-action="info" data-page="sources">Read about the directory and its sources</button>`}</div>`;
+    return `<div class="info-toolbar"><span class="popup-current-name" aria-hidden="true">${sources ? 'About & sources' : 'Guide'}</span><button class="icon-button close-info" data-action="close-info" aria-label="Close guide" autofocus>${icon('close')}</button></div><div class="info-content"><h2 id="info-title">${sources ? 'About the <span class="marker-word">directory</span>' : 'Find a <span class="marker-word">place to eat</span>'}</h2>${sources ? `<p class="info-intro">An independent starting point for eating out in Gibraltar. ${venues.length} selected places across ${data.areas.length} neighbourhoods. Not a complete list, and not a paid ranking.</p><h3>What makes it into the directory?</h3><p>A Gibraltar location and current restaurant or delivery-menu evidence, with a published way to contact, order from or visit the business. The selection covers a spread of cuisines, neighbourhoods and meal types. Inclusion is not a quality rating, first-hand review or partnership.</p><h3>Published details, not live availability.</h3><p>Original package check: ${checkedDate}. Individual listings show their latest check date. Some entries still await a fresh full check. Opening hours and availability are not inferred. Tripadvisor scores and review counts stay on Tripadvisor, where you can read the current listing.</p><div class="source-list">${sourceEntries}</div><h3>A note on the photography</h3><p>The directory uses venue images from business websites, delivery menus, official tourism pages and credited venue galleries. Promotional artwork is labelled. Sources are linked on each listing. Some source images are promotional graphics or archival photographs. They do not establish current trading status. Image sources are credited; original photographer and reuse permissions have not been independently confirmed. Editorial covers remain as a fallback if an image cannot load. No generated images are presented as restaurant photographs.</p><h3>Your browser. Your saved places.</h3><p>Saved places, layout and appearance are stored only in this browser. There are no accounts, tracking scripts, booking records or advertising cookies. Clearing browser data removes your saved places. Contact messages are delivered through an email service to the recipient shown. Limited delivery and abuse-prevention records are kept; message bodies are not stored by this directory. External websites have their own privacy practices.</p><button class="button secondary" data-action="theme">${icon('moon')}<span data-theme-label>Switch to dark appearance</span></button>` : `<p class="info-intro">Find a restaurant by name, neighbourhood, cuisine or meal.</p><dl class="guide-list"><dt>Open now</dt><dd>Uses checked opening hours. Confirm kitchen hours with the restaurant.</dd><dt>Menus, bookings and delivery</dt><dd>Open a place to see the restaurant’s links and delivery options.</dd><dt>Saved places</dt><dd>Use the bookmark icon to save places in this browser.</dd></dl><button class="text-button" data-action="info" data-page="sources">About &amp; sources</button>`}</div>`;
   }
   function showInfo(page) {
     cancelDialogClose(infoDialog);
@@ -563,7 +564,7 @@
     infoDialog.innerHTML = infoHTML(page);
     syncTheme();
     prepareDisclosures(infoDialog);
-    if (!infoDialog.open) infoDialog.showModal();
+    if (!infoDialog.open) openModal(infoDialog);
     infoDialog.scrollTop = 0;
     infoDialog.classList.remove('is-scrolled');
     if (replacing) playMotion($('.info-content',infoDialog),[{opacity:.25,transform:'translateY(8px)'},{opacity:1,transform:'none'}]);
@@ -601,53 +602,30 @@
     if (!copied && $('#message-preview') && text === $('#message-preview').value) { $('#message-preview').focus(); $('#message-preview').select(); }
   }
   let themeTimer;
-  let themeWave;
-  let themeRevision = 0;
   let requestedTheme = document.documentElement.dataset.theme || 'light';
   function applyTheme(theme, button) {
     if (theme === requestedTheme) return;
     requestedTheme = theme;
-    const revision = ++themeRevision;
     const root = document.documentElement;
-    themeWave?.skipTransition();
-    if ((root.dataset.theme || 'light') === theme) return;
     clearTimeout(themeTimer);
-    const update = () => {
-      if (revision !== themeRevision) return;
-      root.dataset.theme = theme;
-      syncTheme();
-    };
-    if (button && !reducedMotion.matches && !document.hidden && document.startViewTransition &&
-        typeof CSS.registerProperty === 'function' && CSS.supports('mask-image', 'radial-gradient(black, transparent)')) {
-      const bounds = button.getBoundingClientRect();
-      const x = bounds.left + bounds.width / 2;
-      const y = bounds.top + bounds.height / 2;
-      const distance = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-      const feather = Math.min(170, Math.max(76, distance * .15));
-      root.style.setProperty('--theme-wave-origin', `${x}px ${y}px`);
-      root.style.setProperty('--theme-wave-feather', `${feather}px`);
-      root.style.setProperty('--theme-wave-reach', `${distance + feather}px`);
-      root.classList.remove('theme-switching');
-      root.classList.add('theme-wave');
-      const wave = document.startViewTransition(update);
-      themeWave = wave;
-      wave.ready.catch(() => {}); // A newer switch or hidden tab may skip the animation.
-      const cleanup = () => {
-        if (themeWave !== wave) return;
-        themeWave = null;
-        root.classList.remove('theme-wave');
-        root.style.removeProperty('--theme-wave-origin');
-        root.style.removeProperty('--theme-wave-feather');
-        root.style.removeProperty('--theme-wave-reach');
-      };
-      wave.finished.then(cleanup, cleanup);
-      return;
-    }
+    root.classList.remove('theme-wave');
     if (!reducedMotion.matches) {
       root.classList.add('theme-switching');
-      themeTimer = setTimeout(() => root.classList.remove('theme-switching'), 300);
-    }
-    update();
+      if (button && !document.querySelector('dialog[open]')) {
+        const bounds = button.getBoundingClientRect();
+        const x = bounds.left + bounds.width / 2;
+        const y = bounds.top + bounds.height / 2;
+        const reach = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+        root.style.setProperty('--theme-wave-origin', `${x}px ${y}px`);
+        root.style.setProperty('--theme-wave-reach', `${reach + 120}px`);
+        // Reset the visual wave when switching again. The live page stays interactive.
+        void root.offsetWidth;
+        root.classList.add('theme-wave');
+      }
+      themeTimer = setTimeout(() => root.classList.remove('theme-switching','theme-wave'), 430);
+    } else root.classList.remove('theme-switching');
+    root.dataset.theme = theme;
+    syncTheme();
   }
   function setTheme(button) {
     const theme = requestedTheme === 'dark' ? 'light' : 'dark';
@@ -680,17 +658,27 @@
       : `Explore ${count} restaurants and cafés in Gibraltar. Find menus, booking links, verified opening hours and delivery on HungryMonkey, RockHero and NomNom’s.`;
     const description = full.length > 160 ? full.slice(0,157).replace(/\s+\S*$/,'')+'…' : full;
     const image = `${origin}/assets/social/${venue ? venue.id : area ? 'area-'+slugForArea(area) : 'home'}-20261121.jpg`;
+    const photo = (venue?.image ? venue : null) || venues.find(item => (!area || item.area === area) && item.image && !item.imageNotice);
     const alt = venue ? `${venue.name} in ${venue.area}, Gibraltar. ${venue.imageAlt || venue.cuisine}` : area ? `Places to eat in ${area}, Gibraltar` : 'Gib .today — restaurants, menus and delivery in Gibraltar';
-    return {title,description,url:origin+route,image,alt,width:1200,height:630};
+    const primaryPhoto = photo ? new URL(photo.image,origin).href : image;
+    const photoDetails = photo && {width:photo.imageWidth,height:photo.imageHeight,caption:photo.imageAlt,credit:photo.imageCredit,source:photo.imageSource};
+    return {title,description,url:origin+route,image,alt,primaryPhoto,photoDetails};
   }
   function structuredData(venue = null, area = null) {
     const origin='https://gib.today', meta=pageMetadata(venue,area);
-    const absolute=value=>new URL(value,origin).href;
+    const {photoDetails, primaryPhoto}=meta;
+    const photoId=primaryPhoto+'#image';
     const graph=[
       {'@type':'Organization','@id':origin+'/#publisher',name:'Gib .today',url:origin+'/',logo:{'@type':'ImageObject',url:origin+'/assets/icon-512.png',width:512,height:512}},
       {'@type':'WebSite','@id':origin+'/#website',url:origin+'/',name:'Gib .today',alternateName:'gib.today',inLanguage:'en-GB',publisher:{'@id':origin+'/#publisher'}},
-      {'@type':'ImageObject','@id':meta.url+'#primary-image',url:meta.image,contentUrl:meta.image,width:1200,height:630,caption:meta.alt,...(venue?.imageCredit?{creditText:venue.imageCredit,isBasedOn:absolute(venue.image)}:{})},
-      {'@type':venue?'WebPage':'CollectionPage','@id':meta.url+'#webpage',url:meta.url,name:meta.title,description:meta.description,inLanguage:'en-GB',isPartOf:{'@id':origin+'/#website'},publisher:{'@id':origin+'/#publisher'},primaryImageOfPage:{'@id':meta.url+'#primary-image'},...(venue||area?{breadcrumb:{'@id':meta.url+'#breadcrumb'}}:{}),mainEntity:{'@id':meta.url+(venue?'#restaurant':'#places')}}
+      {
+        '@type':'ImageObject','@id':photoId,contentUrl:primaryPhoto,url:primaryPhoto,
+        width:photoDetails?.width || 1200,height:photoDetails?.height || 630,
+        caption:photoDetails?.caption || meta.alt,
+        ...(photoDetails?.credit ? {creditText:photoDetails.credit} : {}),
+        ...(photoDetails?.source ? {citation:photoDetails.source} : {})
+      },
+      {'@type':venue?'WebPage':'CollectionPage','@id':meta.url+'#webpage',url:meta.url,name:meta.title,description:meta.description,inLanguage:'en-GB',isPartOf:{'@id':origin+'/#website'},publisher:{'@id':origin+'/#publisher'},primaryImageOfPage:{'@id':photoId},thumbnailUrl:primaryPhoto,...(venue||area?{breadcrumb:{'@id':meta.url+'#breadcrumb'}}:{}),mainEntity:{'@id':meta.url+(venue?'#restaurant':'#places')}}
     ];
     const crumbs=[{name:'Restaurants in Gibraltar',item:origin+'/'}];
     const neighbourhood=venue?.area || area;
@@ -699,7 +687,7 @@
     if(crumbs.length>1) graph.push({'@type':'BreadcrumbList','@id':meta.url+'#breadcrumb',itemListElement:crumbs.map((item,index)=>({'@type':'ListItem',position:index+1,...item}))});
     if(venue) {
       const street=venue.address.replace(/,?\s*Gibraltar\s*(?:GX11\s*1AA)?\s*$/i,'').trim();
-      const entity={'@type':'Restaurant','@id':meta.url+'#restaurant',name:venue.name,url:venue.website || meta.url,mainEntityOfPage:{'@id':meta.url+'#webpage'},description:venue.description,image:[absolute(venue.image),meta.image],address:{'@type':'PostalAddress',streetAddress:street,addressLocality:'Gibraltar',addressCountry:'GI',...(/GX11\s*1AA/i.test(venue.address)?{postalCode:'GX11 1AA'}:{})},servesCuisine:venue.cuisine,sameAs:['website','tripadvisor','instagram','facebook'].map(key=>venue[key]).filter(Boolean)};
+      const entity={'@type':'Restaurant','@id':meta.url+'#restaurant',name:venue.name,url:venue.website || meta.url,mainEntityOfPage:{'@id':meta.url+'#webpage'},description:venue.description,image:{'@id':photoId},address:{'@type':'PostalAddress',streetAddress:street,addressLocality:'Gibraltar',addressCountry:'GI',...(/GX11\s*1AA/i.test(venue.address)?{postalCode:'GX11 1AA'}:{})},servesCuisine:venue.cuisine,sameAs:['website','tripadvisor','instagram','facebook'].map(key=>venue[key]).filter(Boolean)};
       if(venue.phoneHref) entity.telephone=venue.phoneHref;
       if(venue.email) entity.email=venue.email;
       if(venue.menuUrl) { entity.hasMenu=venue.menuUrl; entity.menu=venue.menuUrl; }
@@ -733,7 +721,7 @@
       const tag=$(`meta[name="${key}"]`); if(tag) tag.content=value;
     }
     $('link[rel="canonical"]').href=meta.url;
-    const image=$('link[rel="image_src"]'); if(image) image.href=meta.image;
+    const image=$('link[rel="image_src"]'); if(image) image.href=meta.primaryPhoto;
     const schema=$('#page-schema'); if(schema) schema.textContent=JSON.stringify(structuredData(venue,venue?null:area));
   }
   function navigateArea(area, push=true) {
@@ -781,7 +769,7 @@
     if(back) back.onclick=()=>closeDialog(contactDialog);
     dialogFocus.set(contactDialog,link);
     cancelDialogClose(contactDialog);
-    contactDialog.showModal();
+    openModal(contactDialog);
     contactDialog.scrollTop=0;
     contactDialog.classList.remove('is-scrolled');
     close.focus({preventScroll:true});
@@ -793,15 +781,15 @@
     const phone = contactTarget.protocol === 'tel:';
     const subject = contactTarget.searchParams.get('subject') || (currentVenue ? 'Enquiry — '+currentVenue.name : 'Get in touch');
     const editorialEmail = email && decodeURIComponent(contactTarget.pathname).toLowerCase() === data.contactEmail.toLowerCase();
-    const emailTitle = editorialEmail ? (/correction/i.test(subject) ? 'Spotted something off?' : /suggest/i.test(subject) ? 'A place worth adding?' : /owner|listing update/i.test(subject) ? 'Keep your place up to date.' : 'Get in touch.') : 'Email the restaurant';
+    const emailTitle = editorialEmail ? (/correction/i.test(subject) ? 'Report a correction' : /suggest/i.test(subject) ? 'Suggest a place' : /owner|listing update/i.test(subject) ? 'Update a listing' : 'Get in touch.') : 'Email the restaurant';
     if (phone) {
-      contactDialog.innerHTML = `<form class="contact-form contact-phone"><button type="button" class="icon-button contact-close" aria-label="Close contact form" autofocus>${icon('close')}</button><p class="dialog-kicker">${escapeHTML(currentVenue?.name || 'Restaurant contact')}</p><h2 id="contact-title">Give them a ring.</h2><p class="contact-phone-number">${escapeHTML(currentVenue?.phone || decodeURIComponent(contactTarget.pathname))}</p><p>Your phone app will open with the restaurant’s number. The restaurant can confirm tables and today’s hours.</p><button class="button primary" type="submit">Continue to call ${icon('phone')}</button><p class="source-footnote">You complete the call in your phone app.</p></form>`;
+      contactDialog.innerHTML = `<form class="contact-form contact-phone"><button type="button" class="icon-button contact-close" aria-label="Close contact form" autofocus>${icon('close')}</button><p class="dialog-kicker">${escapeHTML(currentVenue?.name || 'Restaurant contact')}</p><h2 id="contact-title">Call the restaurant</h2><p class="contact-phone-number">${escapeHTML(currentVenue?.phone || decodeURIComponent(contactTarget.pathname))}</p><p>Your phone app will open with the restaurant’s number. The restaurant can confirm tables and today’s hours.</p><button class="button primary" type="submit">Continue to call ${icon('phone')}</button></form>`;
       showContact(link);
       return;
     }
     if (email && data.contactSendingEnabled === false) {
       const restaurantEmail = decodeURIComponent(contactTarget.pathname).toLowerCase() !== data.contactEmail.toLowerCase();
-      const title = /correction/i.test(subject) ? 'Spotted something off?' : /suggest/i.test(subject) ? 'A place worth adding?' : /owner|listing update/i.test(subject) ? 'Keep your place up to date.' : 'Get in touch.';
+      const title = /correction/i.test(subject) ? 'Report a correction' : /suggest/i.test(subject) ? 'Suggest a place' : /owner|listing update/i.test(subject) ? 'Update a listing' : 'Get in touch.';
       contactDialog.innerHTML = `<div class="contact-form"><button type="button" class="icon-button contact-close" aria-label="Close contact form" autofocus>${icon('close')}</button><p class="dialog-kicker">${/correction/i.test(subject) ? 'Corrections' : /suggest/i.test(subject) ? 'Suggestions' : /owner|listing update/i.test(subject) ? 'Listing updates' : 'Contact'}</p><h2 id="contact-title">${title}</h2><div class="contact-unavailable"><strong>Messages are taking a breather.</strong><p>Online enquiries are temporarily unavailable.${restaurantEmail ? ' You can still use this restaurant’s phone, WhatsApp or official booking link where listed.' : ' Please check back to send a suggestion or update.'}</p></div><button class="button secondary contact-back" type="button">${currentVenue ? 'Back to the restaurant' : 'Back to exploring'} ${icon('arrow')}</button></div>`;
       showContact(link);
       return;
@@ -811,21 +799,17 @@
     showContact(link);
   }
   function showContactSuccess(form, payload, kind, venue) {
-    const previousHeight = contactDialog.getBoundingClientRect().height;
     const screen = document.createElement('section');
     screen.className = 'contact-success';
     const thanks = {suggestion:'Thanks for sharing a place worth knowing.', correction:'Thanks for helping keep the details right.', owner:'Thanks for sending your listing update.', general:'Thanks for getting in touch.'};
-    screen.innerHTML = `<div class="contact-success-stamp" aria-hidden="true">${icon('check')}</div><p class="dialog-kicker">All done</p><h2 id="contact-title" tabindex="-1"><span class="marker-word">Message sent.</span></h2><p class="contact-success-copy">${kind === 'restaurant' ? `Your enquiry is on its way to ${escapeHTML(venue.name)}${/[.!?]$/.test(venue.name) ? '' : '.'}` : thanks[kind]}</p><div class="contact-reply-note">${icon('mail')}<p>Replies go to<strong>${escapeHTML(payload.email)}</strong></p></div>${kind === 'restaurant' ? '<p class="contact-success-note">The restaurant will need to reply to confirm any booking.</p>' : ''}<button type="button" class="button primary contact-done">${placeDialog.open ? 'Back to the restaurant' : 'Back to exploring'} ${icon('arrow')}</button>`;
+    screen.innerHTML = `<div class="contact-success-stamp" aria-hidden="true">${icon('check')}</div><h2 id="contact-title" tabindex="-1"><span class="marker-word">Message sent</span></h2><p class="contact-success-copy">${kind === 'restaurant' ? `Your enquiry is on its way to ${escapeHTML(venue.name)}${/[.!?]$/.test(venue.name) ? '' : '.'}` : thanks[kind]}</p><div class="contact-reply-note">${icon('mail')}<p>Replies go to<strong>${escapeHTML(payload.email)}</strong></p></div>${kind === 'restaurant' ? '<p class="contact-success-note">The restaurant will need to reply to confirm any booking.</p>' : ''}<button type="button" class="button primary contact-done">${placeDialog.open ? 'Back to the restaurant' : 'Back to exploring'} ${icon('arrow')}</button>`;
     form.replaceWith(screen);
-    $('.popup-current-name',contactDialog).textContent = 'Message sent.';
+    $('.popup-current-name',contactDialog).textContent = 'Message sent';
     contactDialog.scrollTop = 0;
     contactDialog.classList.remove('is-scrolled');
     $('.contact-done',screen).onclick = () => closeDialog(contactDialog);
     if (contactDialog.open && !contactDialog.classList.contains('closing')) {
-      const nextHeight = contactDialog.getBoundingClientRect().height;
-      playMotion(contactDialog,[{height:`${previousHeight}px`,overflow:'hidden'},{height:`${nextHeight}px`,overflow:'hidden'}]);
-      playMotion(screen,[{opacity:0,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:motion.enter});
-      playMotion($('.contact-success-stamp',screen),[{transform:'rotate(-12deg) scale(.8)'},{transform:'rotate(-5deg) scale(1)'}],{duration:motion.enter});
+      playMotion(screen,[{opacity:.4},{opacity:1}],{duration:motion.enter});
       $('#contact-title',screen).focus({preventScroll:true});
     }
   }
@@ -898,9 +882,8 @@
       case 'layout':
         if (state.layout === button.dataset.layout) break;
         animateUpdate(()=>{ state.layout = button.dataset.layout; storage.set('layout',state.layout); render(); });
-        $$('.card-content',grid).forEach(content=>{const box=content.getBoundingClientRect();if(box.top<innerHeight&&box.bottom>0) playMotion(content,[{opacity:.4},{opacity:1}],{duration:motion.quick});});
         break;
-      case 'save': toggleSaved(button.dataset.id, button); break;
+      case 'save': toggleSaved(button.dataset.id); break;
       case 'open-place':
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button > 0) break;
         event.preventDefault(); showPlace(button.dataset.id); break;
@@ -922,7 +905,6 @@
         target.setAttribute('tabindex','-1'); target.focus({preventScroll:true});
         break;
       }
-      case 'delivery': state.delivery=button.dataset.delivery; animateUpdate(render); break;
       case 'clear-delivery': state.delivery='all'; animateUpdate(render); break;
       case 'clear-online': state.online=false; animateUpdate(render); break;
       case 'open-now':
@@ -943,6 +925,7 @@
   $('#area-select').addEventListener('change',event => navigateArea(event.target.value));
   $('#cuisine-select').addEventListener('change',event => { state.cuisine=event.target.value; animateUpdate(render); });
   $('#online-only').addEventListener('change',event => { state.online=event.target.checked; animateUpdate(render); });
+  $('#delivery-select').addEventListener('change',event => { state.delivery=event.target.value; animateUpdate(render); });
   $('#sort-select').addEventListener('change',event=>{ state.sort=event.target.value; animateUpdate(render); });
   placeDialog.addEventListener('input',event => { if (event.target.matches('#message-guests,#message-date,#message-time')) updateMessage(); });
   placeDialog.addEventListener('change',event => { if (event.target.matches('#message-guests,#message-date,#message-time')) updateMessage(); });
@@ -987,6 +970,7 @@
     $('.sidebar-section').classList.toggle('has-scroll-more',moreAreas);
     const scroller = $('.dialog-scroll',placeDialog), cue = $('.detail-scroll-cue',placeDialog);
     if (cue && scroller) {
+      placeDialog.classList.toggle('is-scrolled',scroller.scrollTop > 90);
       const more = scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop > 24;
       cue.hidden = !more;
     }
@@ -997,7 +981,7 @@
     if (observedDetail) scrollHintObserver?.observe(observedDetail);
     scheduleScrollHints();
   }
-  document.addEventListener('scroll',scheduleScrollHints,{passive:true,capture:true});
+  $('.areas').addEventListener('scroll',scheduleScrollHints,{passive:true});
   window.addEventListener('resize',scheduleScrollHints,{passive:true});
   [$('.sidebar-section'),placeDialog].forEach(element => scrollHintObserver?.observe(element));
   const initialArea=location.pathname.match(/^\/area\/([a-z0-9-]+)\/?$/);

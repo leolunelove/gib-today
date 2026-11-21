@@ -756,11 +756,7 @@ body{font-size:1rem}
 .info-bottom { align-items:center; }
 .info-bottom>span:last-child { color:#202d27; background:var(--brand); padding:.15rem .4rem; transform:rotate(-3deg); font-weight:750; }
 /* Modal choreography: the native top layer remains intact through the exit. */
-.place-dialog,.info-dialog,.contact-dialog { --dialog-from:none; --dialog-to:none; }
-.place-dialog[open],.info-dialog[open],.contact-dialog[open] { animation:dialog-arrive var(--motion-enter) var(--ease-out) both; }
-.place-dialog.closing,.info-dialog.closing,.contact-dialog.closing { animation:dialog-leave var(--motion-exit) var(--ease-in) both; transition:none; }
 dialog::backdrop { animation:backdrop-in var(--motion-enter) ease both; background:#15201860; backdrop-filter:blur(0.25rem); }
-dialog.closing::backdrop { animation:backdrop-away var(--motion-exit) ease both; }
 .dialog-top-actions { position:absolute; z-index:5; top:.8rem; right:.8rem; }
 .dialog-top-actions .icon-button { border:1px solid #202d2733; box-shadow:0 0.125rem 0 #202d2720; }
 .dialog-scroll { scroll-padding-top:4rem; }
@@ -778,9 +774,6 @@ dialog.closing::backdrop { animation:backdrop-away var(--motion-exit) ease both;
 .contact-unavailable strong { display:block; color:var(--ink); margin-bottom:.35rem; }
 .contact-status:empty { display:none; }
 .toast,.dialog-toast { transition:opacity var(--motion-quick) ease,transform var(--motion-move) var(--ease-out); border-radius:.45rem; }
-@keyframes dialog-arrive { from {opacity:0;transform:var(--dialog-from)} to {opacity:1;transform:none} }
-@keyframes dialog-leave { from {opacity:var(--dialog-exit-opacity,1);transform:var(--dialog-exit-transform,none)} to {opacity:0;transform:var(--dialog-to)} }
-@keyframes backdrop-away { from {opacity:1} to {opacity:0} }
 @media(hover:hover) and (pointer:fine) {
   .brand:hover .brand-domain { transform:rotate(-3deg) translateY(-1px); }
   .restaurant-card:hover { transform:translateY(-0.25rem); box-shadow:0 0.3125rem 0 #202d2715,0 0.75rem 1.5rem -1.125rem #202d2750; }
@@ -963,16 +956,17 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:0.125
   to { --theme-wave-radius: var(--theme-wave-reach); }
 }
 @media (prefers-reduced-motion: no-preference) {
-  :root.theme-wave::view-transition { pointer-events: none; }
-  :root.theme-wave::view-transition-group(root),
-  :root.theme-wave::view-transition-old(root) { animation: none; }
-  :root.theme-wave::view-transition-old(root),
-  :root.theme-wave::view-transition-new(root) { mix-blend-mode: normal; }
-  :root.theme-wave::view-transition-new(root) {
-    animation: theme-wave-reveal 640ms cubic-bezier(.25,.12,.28,1) both;
-    mask-image: radial-gradient(circle at var(--theme-wave-origin),
-      black calc(var(--theme-wave-radius) - var(--theme-wave-feather)),
+  :root.theme-wave body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 13;
+    pointer-events: none;
+    background: radial-gradient(circle at var(--theme-wave-origin),
+      transparent calc(var(--theme-wave-radius) - 110px),
+      #f8d96413 calc(var(--theme-wave-radius) - 55px),
       transparent var(--theme-wave-radius));
+    animation: theme-wave-reveal 420ms cubic-bezier(.28,.15,.32,1) both;
   }
   :root.theme-switching :where(
     body, .sidebar, .brand-byline, .sidebar-bottom > span, .topbar, .mobile-nav,
@@ -1256,7 +1250,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:0.125
 .detail-scroll-cue { position:absolute; z-index:6; bottom:0; inset-inline:0; width:100%; height:var(--scroll-hint-row); }
 .place-dialog .dialog-content { padding-bottom:1.5rem; }
 /* Modal text stays on a single raster scale throughout the fade. */
-.place-dialog,.info-dialog,.contact-dialog { --dialog-from:none; --dialog-to:none; }
 .delivery-chip, .delivery-chip.active { font-weight:650; }
 .nav-item, .nav-item.active { font-weight:650; }
 .area-item, .area-item.active { font-weight:600; }
@@ -1278,3 +1271,96 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:0.125
 html[data-initial-place] :is(.sidebar,.app,.mobile-nav) { visibility:hidden; }
 .place-dialog[data-prerendered],.place-dialog[data-initial] { animation:none; }
 .dialog-kicker a:hover { text-decoration:underline; text-decoration-color:var(--brand); text-underline-offset:.15em; }
+
+/* A compact index above the photographs. */
+.directory-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .3rem 1.05rem;
+  margin-bottom: 1.1rem;
+}
+.directory-heading h1 { order: -1; }
+.directory-label { margin: 0; color: var(--muted); }
+.search-row { gap: .5rem; margin-bottom: .25rem; }
+.search-field, .filters-toggle { min-height: 2.85rem; background: var(--surface); }
+.search-field { padding-block: 0; }
+.filters-toggle { padding-inline: .85rem; }
+.filters-toggle[aria-expanded="true"] { background: var(--brand); color: var(--yellow-ink); }
+.filter-panel { grid-template-columns: repeat(4, minmax(0, 1fr)); box-shadow: none; background: var(--surface); }
+.filter-panel .collection-row { margin: 0; }
+.meal-toolbar { padding-block: .1rem; border-bottom: 1px solid var(--line); }
+.meal-chip { position: relative; border-radius: 0; }
+.meal-chip.active { background: none; color: var(--ink); }
+.meal-chip.active::after {
+  content: "";
+  position: absolute;
+  inset: auto .4rem .38rem;
+  height: .22rem;
+  background: var(--brand);
+  border-radius: .08rem;
+}
+.results-toolbar { padding-top: .5rem; margin-bottom: .65rem; }
+.result-total { border: 0; font-variant-numeric: tabular-nums; }
+.results-title { gap: .5rem; }
+.availability-toggle { border-color: transparent; }
+.view-toggle { background: none; border: 0; padding: 0; }
+.view-toggle button[aria-pressed="true"] { background: var(--soft); color: var(--ink); box-shadow: inset 0 -.16rem var(--brand); }
+
+/* A lighter sidebar and small, useful captions. */
+.sidebar .navigation { margin-top: 1.5rem; }
+.sidebar .sidebar-section { margin-top: 1rem; padding-top: .85rem; }
+.sidebar .sidebar-label { color: var(--muted); background: none; padding: 0; margin: 0 0 .4rem .55rem; }
+.sidebar .area-item { min-height: 2.2rem; padding-block: .42rem; text-decoration: none; }
+.sidebar .nav-item.active, .sidebar .area-item.active { background: var(--soft); color: var(--ink); box-shadow: inset .18rem 0 var(--brand); }
+.sidebar .area-item:not(.active):hover, .sidebar .nav-item:not(.active):hover, .sidebar .icon-button:hover { background: var(--soft); color: var(--ink); }
+.sidebar-spacer { min-height: .65rem; }
+.card-title { letter-spacing: -.035em; }
+.card-title a { display: inline; }
+.card-description { margin: .32rem 0 .55rem; }
+.card-bottom :is(.card-delivery,.contact-type) { font-weight: 600; color: var(--muted); }
+.card-bottom .contact-type { text-decoration: none; }
+.card-bottom .card-delivery { flex-basis: auto; }
+.save-button { box-shadow: none; }
+
+/* One solid surface per dialog, with a single scrim. */
+.place-dialog[open], .info-dialog[open], .contact-dialog[open] { animation: none; }
+dialog::backdrop, .contact-dialog::backdrop { background: #221f1a67; backdrop-filter: none; animation: none; transition: background-color 190ms ease; }
+dialog.closing::backdrop { background: transparent; transition-duration: 140ms; }
+@starting-style { dialog[open]::backdrop { background: transparent; } }
+:root[data-theme="dark"] dialog:not(.closing)::backdrop { background: #0e0d0b94; }
+@starting-style { :root[data-theme="dark"] dialog[open]:not(.closing)::backdrop { background: transparent; } }
+.place-heading .marker-word { background: linear-gradient(transparent 68%, var(--brand) 68%); color: var(--ink); }
+:root[data-theme="dark"] .place-heading .marker-word { background: linear-gradient(transparent 68%, #f8d96466 68%); }
+.place-heading .dialog-kicker { margin-bottom: .45rem; }
+.place-action strong, .delivery-option strong { font-weight: 650; }
+.visit-panel h3, .place-section h3, .nearby-section h3 { letter-spacing: -.022em; background: none; padding: 0; }
+.booking-notes { margin-top: .3rem; color: var(--muted); font-size: .76rem; }
+.booking-notes summary { width: fit-content; min-height: 44px; cursor: pointer; gap: .65rem; }
+.booking-notes .reservation-note { margin-top: 0; }
+.list-mode .card-bottom { margin: .18rem 0 0; }
+.info-content { padding-top: 3.5rem; }
+.guide-list { margin: 1.35rem 0; }
+.guide-list dt { font-weight: 700; margin: .9rem 0 .2rem; }
+.guide-list dd { margin: 0; color: var(--muted); font-size: .85rem; }
+.contact-form h2 { text-decoration: none; }
+.contact-success-stamp { transform: none; border: 0; box-shadow: none; }
+:is(.meal-chip,.filters-toggle,.save-button,.place-action,.delivery-option,.place-back,.view-toggle button,.mobile-nav button):active { box-shadow: inset 0 0 0 2px color-mix(in srgb,var(--ink) 24%,transparent); }
+.brand:hover .brand-domain, .brand:active .brand-domain, .mobile-nav button.active > .icon { transform: none; }
+
+@media (max-width: 55em) {
+  .directory-heading { margin-bottom: .75rem; }
+  .directory-heading h1 { order: 0; flex-basis: 100%; }
+  .directory-label { font-size: .64rem; }
+  .filter-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filters-toggle { padding-inline: .65rem; }
+  .mobile-nav { background: var(--surface); backdrop-filter: none; }
+  .mobile-nav button.active { background: none; color: var(--ink); box-shadow: inset 0 .18rem var(--brand); }
+  .mobile-nav button { min-height: 44px; }
+}
+@media (max-width: 23em) {
+  .results-toolbar { flex-wrap: nowrap; gap: .3rem; }
+  .results-title { gap: .3rem; }
+  .results-title h2 { font-size: .95rem; }
+  .result-actions { gap: .15rem; }
+}
