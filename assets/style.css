@@ -120,6 +120,7 @@ kbd { font:400 .75rem/1.2 var(--body-type); border:1px solid var(--line); border
 .filters-toggle[aria-expanded='true'] { background:var(--soft); border-color:var(--muted); }
 .filter-dot { min-width:1.2rem; height:1.2rem; display:grid; place-items:center; padding:.05rem .25rem; border-radius:.25rem; background:var(--brand); color:var(--yellow-ink); font-size:.75rem; font-variant-numeric:tabular-nums; }
 .filter-panel { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.1rem; padding:1.25rem; margin-block:.65rem .5rem; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+.filter-panel.is-animating { overflow:hidden; }
 .field-label { display:flex; flex-direction:column; gap:.4rem; min-width:0; font-size:.875rem; color:var(--muted); }
 .select-wrap { position:relative; display:block; }
 .select-wrap select { appearance:none; width:100%; min-height:2.75rem; padding:.5rem 2rem .5rem .7rem; border:1px solid var(--control-line); border-radius:.4rem; background:var(--bg); color:var(--ink); font-size:.875rem; text-overflow:ellipsis; }
