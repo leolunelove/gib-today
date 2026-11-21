@@ -1021,7 +1021,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:0.125
 }
 .result-total { background: transparent; color: var(--muted); padding: 0; }
 .view-toggle { border-radius: .22rem; }
-.restaurant-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 19.5rem), 1fr)); gap: 1.4rem clamp(1rem, 2vw, 2rem); }
+.restaurant-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, clamp(18rem, 22vw, 19.5rem)), 1fr)); gap: 1.4rem clamp(1rem, 2vw, 2rem); }
 .restaurant-card {
   padding: 0;
   border: 0;
