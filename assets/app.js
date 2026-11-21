@@ -22,7 +22,7 @@
   const byId = new Map(venues.map(venue => [venue.id, venue]));
   let savedIds;
   try { const parsed = JSON.parse(storage.get('saved', '[]')); savedIds = Array.isArray(parsed) ? parsed.filter(id => byId.has(id)) : []; } catch { savedIds = []; }
-  const state = { view: 'explore', query: '', area: 'all', cuisine: 'all', collection: 'all', sort: 'directory', online: false, openNow: false, delivery: 'all', layout: storage.get('layout', 'grid') === 'list' ? 'list' : 'grid', saved: new Set(savedIds) };
+  const state = { view: 'explore', query: '', area: 'all', cuisine: 'all', collection: 'all', meal: 'all', sort: 'directory', online: false, openNow: false, delivery: 'all', layout: storage.get('layout', 'grid') === 'list' ? 'list' : 'grid', saved: new Set(savedIds) };
   const hours = window.GibHours;
   const publishedSchedules = hours ? venues.filter(venue => venue.openingHours) : [];
   const holidays = new Set(data.openingHolidays || []);
@@ -88,7 +88,7 @@
           {duration:motion.enter, delay:Math.min(index,5)*24, fill:'backwards'});
         return;
       }
-      const dx = before.left-after.left, dy = before.top-after.top;
+      const dx = Math.round(before.left-after.left), dy = Math.round(before.top-after.top);
       // Distant sort results settle locally instead of flying through the page.
       if (Math.abs(dx)+Math.abs(dy)<2) return;
       if (Math.abs(dy)>innerHeight*.7) return;
@@ -207,7 +207,7 @@
     const terms = normalise(state.query.trim()).split(/\s+/).filter(Boolean);
     const result = venues.filter(venue => {
       const haystack = searchable.get(venue.id);
-      return (state.view !== 'saved' || state.saved.has(venue.id)) && (state.area === 'all' || venue.area === state.area) && (state.cuisine === 'all' || venue.cuisine === state.cuisine) && (state.collection === 'all' || (venue.collections || []).includes(state.collection)) && (!state.online || Boolean(venue.reservationUrl)) && (!state.openNow || availability.get(venue.id) === 'open') && (state.delivery === 'all' || (venue.delivery || []).some(l=>state.delivery === 'any' || l.provider === state.delivery)) && terms.every(term => haystack.includes(term));
+      return (state.view !== 'saved' || state.saved.has(venue.id)) && (state.area === 'all' || venue.area === state.area) && (state.cuisine === 'all' || venue.cuisine === state.cuisine) && (state.collection === 'all' || (venue.collections || []).includes(state.collection)) && (state.meal === 'all' || (venue.meals || []).includes(state.meal)) && (!state.online || Boolean(venue.reservationUrl)) && (!state.openNow || availability.get(venue.id) === 'open') && (state.delivery === 'all' || (venue.delivery || []).some(l=>state.delivery === 'any' || l.provider === state.delivery)) && terms.every(term => haystack.includes(term));
     });
     if (state.sort === 'az') result.sort((a,b) => a.name.localeCompare(b.name, 'en'));
     if (state.sort === 'za') result.sort((a,b) => b.name.localeCompare(a.name, 'en'));
@@ -284,6 +284,8 @@
     $('#online-only').checked = state.online;
     availabilityToggle.setAttribute('aria-pressed',String(state.openNow));
     $('#availability-note').hidden = !state.openNow;
+    $('#meal-note').hidden = state.meal === 'all';
+    $$('[data-action="meal"]').forEach(button => { const active = button.dataset.meal === state.meal; button.setAttribute('aria-pressed',String(active)); button.classList.toggle('active',active); });
     $$('[data-action="delivery"]').forEach(button => { const active=button.dataset.delivery===state.delivery; button.setAttribute('aria-pressed',String(active)); button.classList.toggle('active',active); });
     $('#clear-search').hidden = !state.query;
     $('#search-hint').hidden = Boolean(state.query);
@@ -306,9 +308,9 @@
     const total = $('#result-total');
     if (total.textContent !== String(matches.length)) { total.textContent = matches.length; playMotion(total,[{transform:'translateY(3px)',opacity:.45},{transform:'none',opacity:1}],{duration:motion.quick}); }
     const oldHeading = $('#results-heading').textContent;
-    $('#results-heading').textContent = state.area !== 'all' ? state.area : state.collection !== 'all' ? data.collections.find(c=>c.id===state.collection)?.name || 'Collection' : hasSearch || state.cuisine !== 'all' || state.online || state.openNow || state.delivery !== 'all' ? 'Matching places' : state.view === 'saved' ? 'Bookmarks' : 'All places';
+    $('#results-heading').textContent = state.area !== 'all' ? state.area : state.collection !== 'all' ? data.collections.find(c=>c.id===state.collection)?.name || 'Collection' : hasSearch || state.cuisine !== 'all' || state.online || state.openNow || state.delivery !== 'all' ? 'Matching places' : state.meal !== 'all' ? `${state.meal[0].toUpperCase()+state.meal.slice(1)} places` : state.view === 'saved' ? 'Bookmarks' : 'All places';
     if (oldHeading !== $('#results-heading').textContent) playMotion($('#results-heading'),[{opacity:.55},{opacity:1}],{duration:motion.quick});
-    $('#results-status').textContent = `${matches.length} restaurant${matches.length === 1 ? '' : 's'}${state.openNow ? ' open now' : ''} ${state.view === 'saved' ? 'in your saved places' : 'in the directory'}${hasSearch ? ` matching “${state.query.trim()}”` : ''}.`;
+    $('#results-status').textContent = `${matches.length} restaurant${matches.length === 1 ? '' : 's'}${state.openNow ? ' open now' : ''}${state.meal !== 'all' ? ` for ${state.meal}` : ''} ${state.view === 'saved' ? 'in your saved places' : 'in the directory'}${hasSearch ? ` matching “${state.query.trim()}”` : ''}.`;
     const tokens = [];
     if (state.cuisine !== 'all') tokens.push(`<button class="active-token" data-action="clear-cuisine" aria-label="Remove cuisine filter">${escapeHTML(state.cuisine)} ${icon('close')}</button>`);
     if (state.area !== 'all') tokens.push(`<button class="active-token" data-action="clear-area" aria-label="Remove neighbourhood filter">${escapeHTML(state.area)} ${icon('close')}</button>`);
@@ -319,10 +321,11 @@
     $('#active-filters').hidden = !tokens.length;
     if (focusedToken) ($('#active-filters').children[Math.min(tokenIndex,tokens.length-1)] || $('#filters-toggle')).focus({preventScroll:true});
     syncControls();
+    scheduleScrollHints();
   }
   function resetFilters() {
     clearTimeout(searchTimeout);
-    state.query = ''; state.area = 'all'; state.cuisine = 'all'; state.collection = 'all'; state.online = false; state.openNow = false; state.delivery = 'all'; state.sort = 'directory';
+    state.query = ''; state.area = 'all'; state.cuisine = 'all'; state.collection = 'all'; state.meal = 'all'; state.online = false; state.openNow = false; state.delivery = 'all'; state.sort = 'directory';
     $('#search-input').value = '';
     render();
   }
@@ -466,6 +469,7 @@
           </div>
         </footer>
       </div></div>
+      <button class="scroll-cue detail-scroll-cue" type="button" data-action="scroll-more" data-scroll="details" aria-label="Scroll to more restaurant details" hidden>More details ${icon('chevron')}</button>
       <div class="dialog-toast" role="status" aria-live="polite">${icon('check')}<span class="dialog-toast-message"></span></div>`;
   }
   function showPlace(id, changeHash = true) {
@@ -488,7 +492,8 @@
       scrollFrame=requestAnimationFrame(()=>{placeDialog.classList.toggle('is-scrolled',scroller.scrollTop>100);scrollFrame=0;});
     },{passive:true});
     $('[data-action="close-place"]',placeDialog).focus({preventScroll:true});
-    if (replacing) playMotion($('.dialog-content',placeDialog),[{opacity:.25,transform:'translateY(8px)'},{opacity:1,transform:'none'}]);
+    if (replacing) playMotion($('.dialog-content',placeDialog),[{opacity:.25},{opacity:1}]);
+    observeDetailScroll();
     if (changeHash) history[replacing?'replaceState':'pushState']({tablePlace:true},'',`/place/${encodeURIComponent(id)}/`);
     updateMetadata(venue);
     updateMessage();
@@ -496,6 +501,7 @@
   }
   function syncScrollLock() {
     document.documentElement.style.overflow = document.querySelector('dialog[open]') ? 'hidden' : '';
+    scheduleScrollHints();
   }
   function cancelDialogClose(dialog) {
     const timer = dialogClosers.get(dialog);
@@ -820,6 +826,15 @@
       case 'reset-filters': animateUpdate(resetFilters); break;
       case 'clear-cuisine': state.cuisine='all'; animateUpdate(render); break;
       case 'clear-area': state.area='all'; animateUpdate(render); break;
+      case 'meal': state.meal=button.dataset.meal; animateUpdate(render); break;
+      case 'scroll-more': {
+        const target = button.dataset.scroll === 'areas' ? $('.areas') : button.dataset.scroll === 'details' ? $('.dialog-scroll',placeDialog) : document.scrollingElement;
+        if (!target) break;
+        target.scrollBy({top:target.clientHeight*.65,behavior:reducedMotion.matches?'instant':'smooth'});
+        // Hints may disappear at the end; keep keyboard focus on the scrolled region.
+        target.setAttribute('tabindex','-1'); target.focus({preventScroll:true});
+        break;
+      }
       case 'delivery': state.delivery=button.dataset.delivery; animateUpdate(render); break;
       case 'clear-delivery': state.delivery='all'; animateUpdate(render); break;
       case 'clear-online': state.online=false; animateUpdate(render); break;
@@ -871,6 +886,36 @@
     document.addEventListener('visibilitychange', refreshAvailability);
     window.addEventListener('pageshow', refreshAvailability);
   }
+  let hintFrame = 0;
+  const scrollHintObserver = 'ResizeObserver' in window ? new ResizeObserver(scheduleScrollHints) : null;
+  let observedDetail = null;
+  function scheduleScrollHints() {
+    if (hintFrame) return;
+    hintFrame = requestAnimationFrame(() => { hintFrame=0; syncScrollHints(); });
+  }
+  function syncScrollHints() {
+    const areas = $('.areas');
+    const moreAreas = areas.scrollHeight-areas.clientHeight-areas.scrollTop > 12;
+    $('.sidebar-scroll-cue').hidden = !moreAreas;
+    $('.sidebar-section').classList.toggle('has-scroll-more',moreAreas);
+    const page = document.scrollingElement;
+    $('.page-scroll-cue').hidden = Boolean(document.querySelector('dialog[open]')) || page.scrollTop > 100 || page.scrollHeight-page.clientHeight < 160 || grid.getBoundingClientRect().bottom < innerHeight+80;
+    const scroller = $('.dialog-scroll',placeDialog), cue = $('.detail-scroll-cue',placeDialog);
+    if (cue && scroller) {
+      const more = scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop > 24;
+      cue.hidden = !more;
+      placeDialog.classList.toggle('has-scroll-more',more);
+    }
+  }
+  function observeDetailScroll() {
+    if (observedDetail) scrollHintObserver?.unobserve(observedDetail);
+    observedDetail = $('.dialog-content',placeDialog);
+    if (observedDetail) scrollHintObserver?.observe(observedDetail);
+    scheduleScrollHints();
+  }
+  document.addEventListener('scroll',scheduleScrollHints,{passive:true,capture:true});
+  window.addEventListener('resize',scheduleScrollHints,{passive:true});
+  [grid,$('.sidebar-section'),placeDialog].forEach(element => scrollHintObserver?.observe(element));
   animateUpdate(render); syncTheme(); handleHash();
 })();
 
