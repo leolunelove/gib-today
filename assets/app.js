@@ -828,7 +828,7 @@
       case 'clear-area': state.area='all'; animateUpdate(render); break;
       case 'meal': state.meal=button.dataset.meal; animateUpdate(render); break;
       case 'scroll-more': {
-        const target = button.dataset.scroll === 'areas' ? $('.areas') : button.dataset.scroll === 'details' ? $('.dialog-scroll',placeDialog) : document.scrollingElement;
+        const target = button.dataset.scroll === 'areas' ? $('.areas') : $('.dialog-scroll',placeDialog);
         if (!target) break;
         target.scrollBy({top:target.clientHeight*.65,behavior:reducedMotion.matches?'instant':'smooth'});
         // Hints may disappear at the end; keep keyboard focus on the scrolled region.
@@ -898,13 +898,10 @@
     const moreAreas = areas.scrollHeight-areas.clientHeight-areas.scrollTop > 12;
     $('.sidebar-scroll-cue').hidden = !moreAreas;
     $('.sidebar-section').classList.toggle('has-scroll-more',moreAreas);
-    const page = document.scrollingElement;
-    $('.page-scroll-cue').hidden = Boolean(document.querySelector('dialog[open]')) || page.scrollTop > 100 || page.scrollHeight-page.clientHeight < 160 || grid.getBoundingClientRect().bottom < innerHeight+80;
     const scroller = $('.dialog-scroll',placeDialog), cue = $('.detail-scroll-cue',placeDialog);
     if (cue && scroller) {
       const more = scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop > 24;
       cue.hidden = !more;
-      placeDialog.classList.toggle('has-scroll-more',more);
     }
   }
   function observeDetailScroll() {
@@ -915,7 +912,7 @@
   }
   document.addEventListener('scroll',scheduleScrollHints,{passive:true,capture:true});
   window.addEventListener('resize',scheduleScrollHints,{passive:true});
-  [grid,$('.sidebar-section'),placeDialog].forEach(element => scrollHintObserver?.observe(element));
+  [$('.sidebar-section'),placeDialog].forEach(element => scrollHintObserver?.observe(element));
   animateUpdate(render); syncTheme(); handleHash();
 })();
 

@@ -1243,17 +1243,18 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:0.125
 .meal-note { margin:-.15rem 0 .75rem; color:var(--muted); font-size:.75rem; line-height:1.5; max-width:65ch; }
 @media (hover:hover) { .meal-chip:not(.active):hover { background:var(--soft); } }
 
-/* Hidden tracks, visible invitations. Hints disappear as the end comes into view. */
-.scroll-cue { display:flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; padding:.45rem .85rem; background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:.25rem; font-size:.73rem; font-weight:700; line-height:1.2; box-shadow:0 .15rem .5rem #00000012; }
-.scroll-cue .icon { width:1.1rem; height:1.1rem; padding:.08rem; border-radius:.1rem; background:var(--brand); color:var(--yellow-ink); }
-.scroll-cue:hover { border-color:var(--muted); }
-.sidebar-section { position:relative; }
-.sidebar-section.has-scroll-more .areas { mask-image:linear-gradient(#000 calc(100% - 3rem),transparent); }
-.sidebar-scroll-cue { position:absolute; bottom:0; left:0; right:0; width:fit-content; margin-inline:auto; font-size:.67rem; }
-.page-scroll-cue { position:fixed; z-index:10; bottom:1.1rem; left:calc(50% + var(--sidebar-width)/2); transform:translateX(-50%); }
-.detail-scroll-cue { position:absolute; z-index:6; bottom:.8rem; left:50%; transform:translateX(-50%); }
-.place-dialog.has-scroll-more::after { content:""; position:absolute; z-index:4; bottom:0; inset-inline:0; height:4.3rem; background:linear-gradient(transparent,var(--surface)); pointer-events:none; }
-.place-dialog .dialog-content { padding-bottom:4rem; }
+/* Quiet scroll hints sit in reserved rows, clear of links and photographs. */
+.scroll-cue { display:flex; align-items:center; justify-content:center; gap:.3rem; min-height:2rem; padding:.2rem .35rem; background:none; color:var(--muted); border:0; border-radius:0; font-size:.66rem; font-weight:500; line-height:1.2; box-shadow:none; }
+.scroll-cue .icon { width:.8rem; height:.8rem; }
+.scroll-cue:hover { color:var(--ink); }
+.scroll-cue:focus-visible { outline-offset:-.2rem; }
+.sidebar-section { position:relative; padding-bottom:2rem; }
+.sidebar-section.has-scroll-more .areas { mask-image:linear-gradient(#000 calc(100% - .75rem),transparent); }
+.sidebar-scroll-cue { position:absolute; bottom:0; left:0; right:0; width:100%; }
+.place-dialog { --scroll-hint-row:2rem; }
+.place-dialog .dialog-scroll { height:calc(100% - var(--listing-bar) - var(--scroll-hint-row)); }
+.detail-scroll-cue { position:absolute; z-index:6; bottom:0; inset-inline:0; width:100%; height:var(--scroll-hint-row); }
+.place-dialog .dialog-content { padding-bottom:1.5rem; }
 /* Modal text stays on a single raster scale throughout the fade. */
 .place-dialog,.info-dialog,.contact-dialog { --dialog-from:none; --dialog-to:none; }
 .delivery-chip, .delivery-chip.active { font-weight:650; }
@@ -1263,7 +1264,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:0.125
 @media (max-width:55em) {
   .meal-toolbar { gap:.15rem; }
   .meal-chip { flex:1; padding-inline:.4rem; font-size:.8rem; }
-  .page-scroll-cue { left:50%; bottom:calc(4.6rem + env(safe-area-inset-bottom)); }
 }
 @media (prefers-reduced-motion:reduce) { .meal-chip { transition:none; } }
 
@@ -1271,3 +1271,5 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline-width:0.125
 @media (max-width:55em) { input,select,textarea,.search-field input { font-size:max(1rem,16px); } }
 
 @media (pointer:coarse) { .save-button,.icon-button,.mobile-theme,.place-back,.availability-toggle,.delivery-chip { min-width:44px; min-height:44px; } }
+
+@media (pointer:coarse) { .sidebar-section { padding-bottom:2.75rem; } .place-dialog { --scroll-hint-row:2.75rem; } .scroll-cue { min-height:44px; } }
